@@ -175,3 +175,18 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
     },
   };
 }
+
+export function generateNegativePrompt(intensity: number, seed?: number): string {
+  const rng = mulberry32(seed ?? Math.floor(Math.random() * 1_000_000_000));
+
+  // Always include some core negatives
+  const core = ["low quality", "bad anatomy", "extra limbs", "jpeg artifacts"];
+  const pool = negativesBase.filter((n) => !core.includes(n));
+
+  // Pick a random subset size
+  const count = randomInt(rng, 6, 12);
+  const picked = pickMany(rng, pool, count);
+  const all = [...core, ...picked];
+
+  return all.map((n) => `(${n}:${intensity.toFixed(2)})`).join(", ");
+}

@@ -125,9 +125,6 @@ export const PromptControls: React.FC<Props> = ({
         </div>
 
         <div className="flex gap-2">
-          <Button onClick={onShuffle}>
-            <Shuffle className="mr-2 h-4 w-4" /> Shuffle
-          </Button>
           <Button variant="outline" onClick={() => navigate("/profile")}>
             <User className="mr-2 h-4 w-4" /> Profile
           </Button>

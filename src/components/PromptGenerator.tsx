@@ -4,6 +4,7 @@ import * as React from "react";
 import { PromptControls, ControlsState } from "./generator/PromptControls";
 import { PromptDisplay } from "./generator/PromptDisplay";
 import { generatePrompt, type GeneratorConfig } from "@/lib/prompt-engine";
+import { generateNegativePrompt } from "@/lib/prompt-engine";
 import { showSuccess } from "@/utils/toast";
 import { HistoryList, type HistoryItem } from "./generator/HistoryList";
 import { buildShareUrl, parseControlsFromQuery } from "@/lib/url-state";
@@ -62,10 +63,8 @@ export const PromptGenerator: React.FC = () => {
       saveHistory(prevNext);
     }
 
-    // Randomize seed for new generation
+    // Randomize seed and generate new positive+negative
     const newSeed = randomSeed();
-
-    // Generate new prompt
     const config: GeneratorConfig = {
       seed: newSeed,
       includeNegative: controls.includeNegative,
@@ -75,16 +74,19 @@ export const PromptGenerator: React.FC = () => {
     };
     const result = generatePrompt(config);
 
-    // Update controls.seed so badge reflects the new seed
     setControls((c) => ({ ...c, seed: newSeed }));
-
-    // Populate text field and negative
     setPositive(result.positive);
     setNegative(result.negative);
     setLastSeed(newSeed);
-
     showSuccess("Prompt updated");
   }, [controls.includeNegative, controls.medium, controls.negativeIntensity, controls.safeMode, controls.seed, history, lastSeed, positive, negative]);
+
+  // Shuffle Negative handler
+  const onShuffleNegative = () => {
+    const nextNeg = generateNegativePrompt(controls.negativeIntensity);
+    setNegative(nextNeg);
+    showSuccess("Negative updated");
+  };
 
   React.useEffect(() => {
     // Generate initial prompt
@@ -154,16 +156,16 @@ export const PromptGenerator: React.FC = () => {
           positive={positive}
           negative={negative}
           seed={controls.seed}
-          onShuffle={onShuffleClick}
+          onShuffle={shuffle}
           onShare={onShare}
           onPositiveChange={setPositive}
           onClearPositive={onClearPositive}
           onClearNegative={onClearNegative}
+          onShuffleNegative={onShuffleNegative}
         />
         <PromptControls
           state={controls}
           onChange={setControls}
-          onShuffle={onShuffleClick}
           onRandomizeSeed={randomizeSeed}
         />
       </div>

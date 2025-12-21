@@ -152,11 +152,43 @@ export const renderTech: string[] = [
 ];
 
 export const negativesBase: string[] = [
+  // Core artifacts
   "low quality",
+  "worst quality",
+  "normal quality",
+  "lowres",
   "jpeg artifacts",
+  "blurry",
+  "noisy",
+  "grainy",
+
+  // Anatomy and limbs
   "bad anatomy",
+  "bad proportions",
+  "malformed limbs",
+  "disfigured",
+  "deformed",
   "extra limbs",
-  "overexposure",
+  "extra fingers",
+  "missing fingers",
+  "fused fingers",
+  "bad hands",
+  "long neck",
+
+  // Composition issues
+  "duplicate",
+  "cropped",
+  "tilted horizon",
+
+  // Exposure and color
+  "overexposed",
+  "underexposed",
+  "oversaturated",
+  "undersaturated",
+
+  // Text/watermarks
   "watermark",
+  "signature",
+  "text",
   "text artifacts",
 ];

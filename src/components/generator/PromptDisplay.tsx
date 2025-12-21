@@ -17,9 +17,10 @@ type Props = {
   onPositiveChange?: (text: string) => void;
   onClearPositive?: () => void;
   onClearNegative?: () => void;
+  onShuffleNegative?: () => void;
 };
 
-export const PromptDisplay: React.FC<Props> = ({ positive, negative, seed, onShuffle, onShare, onPositiveChange, onClearPositive, onClearNegative }) => {
+export const PromptDisplay: React.FC<Props> = ({ positive, negative, seed, onShuffle, onShare, onPositiveChange, onClearPositive, onClearNegative, onShuffleNegative }) => {
   const copyText = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     showSuccess(`${label} copied`);
@@ -66,7 +67,10 @@ export const PromptDisplay: React.FC<Props> = ({ positive, negative, seed, onShu
                 <Copy className="mr-2 h-4 w-4" /> Copy Negative
               </Button>
               <Button variant="outline" size="sm" onClick={onClearNegative}>
-                <Trash2 className="mr-2 h-4 w-4" /> Clear
+                Clear
+              </Button>
+              <Button size="sm" onClick={onShuffleNegative}>
+                <Shuffle className="mr-2 h-4 w-4" /> Shuffle Negative
               </Button>
             </div>
           </div>
