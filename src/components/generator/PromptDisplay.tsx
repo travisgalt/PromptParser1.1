@@ -12,9 +12,10 @@ type Props = {
   negative?: string;
   seed: number;
   onShuffle: () => void;
+  onShare?: () => void;
 };
 
-export const PromptDisplay: React.FC<Props> = ({ positive, negative, seed, onShuffle }) => {
+export const PromptDisplay: React.FC<Props> = ({ positive, negative, seed, onShuffle, onShare }) => {
   const copyText = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     showSuccess(`${label} copied`);
@@ -37,6 +38,11 @@ export const PromptDisplay: React.FC<Props> = ({ positive, negative, seed, onShu
             <Button size="sm" onClick={onShuffle}>
               <Shuffle className="mr-2 h-4 w-4" /> Shuffle
             </Button>
+            {onShare && (
+              <Button size="sm" variant="outline" onClick={onShare}>
+                Share
+              </Button>
+            )}
           </div>
         </div>
 
