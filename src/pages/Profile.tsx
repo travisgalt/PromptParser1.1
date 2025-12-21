@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { showSuccess } from "@/utils/toast";
 import { useNavigate } from "react-router-dom";
-import supabase from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/components/auth/SessionProvider";
 
 type ProfileData = {
