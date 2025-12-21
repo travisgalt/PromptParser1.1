@@ -1,26 +1,42 @@
 export type Medium = "photo" | "render";
 
+export type ScenarioKey =
+  | "indoor_private"
+  | "outdoor_public_day"
+  | "outdoor_public_night"
+  | "studio";
+
 export type OutfitItem = {
   label: string;
   hasPockets: boolean;
+  contextsAllowed: ScenarioKey[];
 };
 
 export type PoseItem = {
   label: string;
   requiresPockets?: boolean;
   usesHandsInPocket?: boolean;
+  publicFriendly?: boolean;
 };
 
 export type AccessoryItem = {
   label: string;
   handOccupied?: boolean; // requires holding in hand
   nsfwSensitive?: boolean;
+  contextsAllowed?: ScenarioKey[];
+  allowedTimes?: ("day" | "night")[]; // optional time-of-day gating
 };
 
 export type BackgroundItem = {
   label: string;
   environment: "indoor" | "outdoor" | "studio";
   timeOfDay?: "day" | "night";
+};
+
+export type ExtraWearItem = {
+  label: string;
+  hasPockets: boolean;
+  contextsAllowed: ScenarioKey[];
 };
 
 export const qualityTags: string[] = [
@@ -46,45 +62,58 @@ export const eyeColors: string[] = [
 ];
 
 export const outfits: OutfitItem[] = [
-  { label: "shiny latex bodysuit, high collar, chains", hasPockets: false },
-  { label: "distressed black denim jacket, torn fishnet tights, band t-shirt", hasPockets: true },
-  { label: "plaid punk skirt, safety pins, leather combat boots, studded belt", hasPockets: false },
-  { label: "gothic lolita dress, velvet texture, white lace trim", hasPockets: false },
-  { label: "mesh top, see-through, black bra, leather mini skirt", hasPockets: false },
-  { label: "vinyl pants, reflective fabric, cropped hoodie", hasPockets: true },
-  { label: "black satin slip dress, smooth texture, lace hem", hasPockets: false },
-  { label: "white cotton oversized shirt, no pants, comfy", hasPockets: false },
-  { label: "silk pajamas, glossy fabric", hasPockets: false },
-  { label: "sports bra, yoga pants, spandex, athleisure", hasPockets: true },
-  { label: "knitted off-shoulder sweater, soft texture, collarbone", hasPockets: false },
-  { label: "tight denim jeans, stone wash, white tank top", hasPockets: true },
-  { label: "sundress, floral pattern, light cotton fabric", hasPockets: false },
-  { label: "leather biker jacket, hoodie underneath, leggings", hasPockets: true },
+  { label: "shiny latex bodysuit, high collar, chains", hasPockets: false, contextsAllowed: ["studio", "indoor_private"] },
+  { label: "distressed black denim jacket, torn fishnet tights, band t-shirt", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
+  { label: "plaid punk skirt, safety pins, leather combat boots, studded belt", hasPockets: false, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
+  { label: "gothic lolita dress, velvet texture, white lace trim", hasPockets: false, contextsAllowed: ["studio", "indoor_private", "outdoor_public_night"] },
+  { label: "mesh top, see-through, black bra, leather mini skirt", hasPockets: false, contextsAllowed: ["studio", "indoor_private"] },
+  { label: "vinyl pants, reflective fabric, cropped hoodie", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
+  { label: "black satin slip dress, smooth texture, lace hem", hasPockets: false, contextsAllowed: ["studio", "indoor_private"] },
+  { label: "white cotton oversized shirt, no pants, comfy", hasPockets: false, contextsAllowed: ["indoor_private"] },
+  { label: "silk pajamas, glossy fabric", hasPockets: false, contextsAllowed: ["indoor_private"] },
+  { label: "sports bra, yoga pants, spandex, athleisure", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
+  { label: "knitted off-shoulder sweater, soft texture, collarbone", hasPockets: false, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
+  { label: "tight denim jeans, stone wash, white tank top", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
+  { label: "sundress, floral pattern, light cotton fabric", hasPockets: false, contextsAllowed: ["outdoor_public_day", "indoor_private", "studio"] },
+  { label: "leather biker jacket, hoodie underneath, leggings", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
 ];
 
 export const poses: PoseItem[] = [
-  { label: "sitting, legs crossed, looking at viewer" },
-  { label: "selfie pose, peace sign, close up, dutch angle" },
-  { label: "looking back over shoulder, dynamic angle" },
+  { label: "sitting, legs crossed, looking at viewer", publicFriendly: true },
+  { label: "selfie pose, peace sign, close up, dutch angle", publicFriendly: true },
+  { label: "looking back over shoulder, dynamic angle", publicFriendly: true },
   { label: "squatting, knees to chest" },
-  { label: "upper body, cowboy shot, arms crossed" },
-  { label: "standing, hand on hip" },
-  { label: "standing, hand in pocket, hip cocked", requiresPockets: true, usesHandsInPocket: true },
-  { label: "walking, hands in pockets, looking away", requiresPockets: true, usesHandsInPocket: true },
-  { label: "leaning against wall, hand in pocket", requiresPockets: true, usesHandsInPocket: true },
+  { label: "upper body, cowboy shot, arms crossed", publicFriendly: true },
+  { label: "standing, hand on hip", publicFriendly: true },
+  { label: "standing, hand in pocket, hip cocked", requiresPockets: true, usesHandsInPocket: true, publicFriendly: true },
+  { label: "walking, hands in pockets, looking away", requiresPockets: true, usesHandsInPocket: true, publicFriendly: true },
+  { label: "leaning against wall, hand in pocket", requiresPockets: true, usesHandsInPocket: true, publicFriendly: true },
 ];
 
 export const accessories: AccessoryItem[] = [
-  { label: "choker with bell, collar" },
-  { label: "black rimmed glasses" },
-  { label: "sunglasses on head" },
-  { label: "large headphones" },
-  { label: "earbuds" },
-  { label: "nose piercing, septum ring" },
-  { label: "beanie, knitted cap" },
-  { label: "backpack, tote bag" },
-  { label: "holding smartphone", handOccupied: true },
-  { label: "holding coffee cup", handOccupied: true },
+  { label: "choker with bell, collar", contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
+  { label: "black rimmed glasses", contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
+  { label: "sunglasses on head", contextsAllowed: ["outdoor_public_day"], allowedTimes: ["day"] },
+  { label: "large headphones", contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
+  { label: "earbuds", contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
+  { label: "nose piercing, septum ring", contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
+  { label: "beanie, knitted cap", contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
+  { label: "backpack, tote bag", contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
+  { label: "holding smartphone", handOccupied: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
+  { label: "holding coffee cup", handOccupied: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
+];
+
+export const outerwearItems: ExtraWearItem[] = [
+  { label: "denim jacket", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
+  { label: "oversized hoodie", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
+  { label: "long trench coat", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
+];
+
+export const footwearItems: ExtraWearItem[] = [
+  { label: "white sneakers", hasPockets: false, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
+  { label: "leather boots", hasPockets: false, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
+  { label: "black flats", hasPockets: false, contextsAllowed: ["outdoor_public_day", "indoor_private", "studio"] },
+  { label: "stiletto heels", hasPockets: false, contextsAllowed: ["outdoor_public_night", "indoor_private", "studio"] },
 ];
 
 export const backgrounds: BackgroundItem[] = [
@@ -112,7 +141,7 @@ export const lightingByContext: Record<string, string[]> = {
 export const photoTech: string[] = [
   "depth of field, f/1.8, bokeh",
   "chromatic aberration, film grain, ISO 800",
-  "sharp focus, highly detailed face, 8k render",
+  "sharp focus, highly detailed face",
   "polaroid style, vintage filter",
 ];
 
