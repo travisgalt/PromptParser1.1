@@ -36,6 +36,7 @@ export const PromptGenerator: React.FC = () => {
       return [];
     }
   });
+  const [lastSeed, setLastSeed] = React.useState<number | undefined>(undefined);
 
   const saveHistory = (next: HistoryItem[]) => {
     setHistory(next);
@@ -47,6 +48,21 @@ export const PromptGenerator: React.FC = () => {
   };
 
   const shuffle = React.useCallback(() => {
+    // First, if there is an existing prompt, save it to history before generating a new one
+    if (positive && positive.trim().length > 0) {
+      const prevItem: HistoryItem = {
+        id: `${(lastSeed ?? controls.seed)}-${Date.now()}`,
+        positive,
+        negative,
+        seed: lastSeed ?? controls.seed,
+        timestamp: Date.now(),
+        favorite: false,
+      };
+      const prevNext = [prevItem, ...history].slice(0, 25);
+      saveHistory(prevNext);
+    }
+
+    // Now generate the new prompt and populate the text field
     const config: GeneratorConfig = {
       seed: controls.seed,
       includeNegative: controls.includeNegative,
@@ -57,18 +73,10 @@ export const PromptGenerator: React.FC = () => {
     const result = generatePrompt(config);
     setPositive(result.positive);
     setNegative(result.negative);
-    const item: HistoryItem = {
-      id: `${result.seed}-${Date.now()}`,
-      positive: result.positive,
-      negative: result.negative,
-      seed: result.seed,
-      timestamp: Date.now(),
-      favorite: false,
-    };
-    const next = [item, ...history].slice(0, 25);
-    saveHistory(next);
-    showSuccess("Prompt generated");
-  }, [controls, history]);
+    setLastSeed(result.seed);
+
+    showSuccess("Prompt updated");
+  }, [controls, history, positive, negative, lastSeed]);
 
   React.useEffect(() => {
     shuffle();
