@@ -5,7 +5,7 @@ import { PromptGenerator } from "@/components/PromptGenerator";
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-background">
       <div className="pb-12">
         <PromptGenerator />
       </div>

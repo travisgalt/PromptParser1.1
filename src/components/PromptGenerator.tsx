@@ -120,6 +120,7 @@ export const PromptGenerator: React.FC = () => {
           seed={controls.seed}
           onShuffle={onShuffleClick}
           onShare={onShare}
+          onPositiveChange={setPositive}
         />
         <PromptControls
           state={controls}

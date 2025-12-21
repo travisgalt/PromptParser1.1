@@ -8,7 +8,9 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Shuffle } from "lucide-react";
+import { Shuffle, User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export type ControlsState = {
   seed: number;
@@ -34,6 +36,7 @@ export const PromptControls: React.FC<Props> = ({
   const setField = <K extends keyof ControlsState>(key: K, value: ControlsState[K]) => {
     onChange({ ...state, [key]: value });
   };
+  const navigate = useNavigate();
 
   return (
     <Card className="w-full">
@@ -41,6 +44,8 @@ export const PromptControls: React.FC<Props> = ({
         <CardTitle className="text-xl">Prompt Controls</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        <ThemeToggle />
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="seed">Seed</Label>
@@ -122,6 +127,9 @@ export const PromptControls: React.FC<Props> = ({
         <div className="flex gap-2">
           <Button onClick={onShuffle}>
             <Shuffle className="mr-2 h-4 w-4" /> Shuffle
+          </Button>
+          <Button variant="outline" onClick={() => navigate("/profile")}>
+            <User className="mr-2 h-4 w-4" /> Profile
           </Button>
         </div>
       </CardContent>

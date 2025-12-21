@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { showSuccess } from "@/utils/toast";
 import { Copy, Shuffle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 
 type Props = {
   positive: string;
@@ -13,9 +14,10 @@ type Props = {
   seed: number;
   onShuffle: () => void;
   onShare?: () => void;
+  onPositiveChange?: (text: string) => void;
 };
 
-export const PromptDisplay: React.FC<Props> = ({ positive, negative, seed, onShuffle, onShare }) => {
+export const PromptDisplay: React.FC<Props> = ({ positive, negative, seed, onShuffle, onShare, onPositiveChange }) => {
   const copyText = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     showSuccess(`${label} copied`);
@@ -30,7 +32,11 @@ export const PromptDisplay: React.FC<Props> = ({ positive, negative, seed, onShu
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">Positive</p>
-          <div className="rounded-md bg-muted p-3 text-sm">{positive}</div>
+          <Textarea
+            value={positive}
+            onChange={(e) => onPositiveChange?.(e.target.value)}
+            className="min-h-[120px] text-sm"
+          />
           <div className="flex gap-2">
             <Button variant="secondary" size="sm" onClick={() => copyText(positive, "Positive prompt")}>
               <Copy className="mr-2 h-4 w-4" /> Copy Positive
