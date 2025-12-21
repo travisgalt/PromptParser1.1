@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PromptParser1.1</string>
+    <string name="title_activity_main">PromptParser1.1</string>
+    <string name="package_name">com.example.promptparser11</string>
+    <string name="custom_url_scheme">com.example.promptparser11</string>
+</resources>
