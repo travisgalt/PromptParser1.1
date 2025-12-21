@@ -48,8 +48,8 @@ export const PromptGenerator: React.FC = () => {
   };
 
   const shuffle = React.useCallback(() => {
-    // First, if there is an existing prompt, save it to history before generating a new one
-    if (positive && positive.trim().length > 0) {
+    // 1) Archive the current prompt (the one in the textarea) into history if it exists
+    if (positive.trim().length > 0) {
       const prevItem: HistoryItem = {
         id: `${(lastSeed ?? controls.seed)}-${Date.now()}`,
         positive,
@@ -62,9 +62,38 @@ export const PromptGenerator: React.FC = () => {
       saveHistory(prevNext);
     }
 
-    // Now generate the new prompt and populate the text field
+    // 2) Randomize seed by default so Shuffle produces a different prompt
+    const newSeed = randomSeed();
+
+    // 3) Generate a fresh prompt using the new seed and update the textarea immediately
     const config: GeneratorConfig = {
-      seed: controls.seed,
+      seed: newSeed,
+      includeNegative: controls.includeNegative,
+      negativeIntensity: controls.negativeIntensity,
+      medium: controls.medium,
+      safeMode: controls.safeMode,
+    };
+    const result = generatePrompt(config);
+
+    // Update controls.seed to reflect the new generation
+    // This ensures the Seed badge in PromptDisplay updates too
+    setControls((c) => ({ ...c, seed: newSeed }));
+
+    // Write new prompt into the text area and keep the negative in sync
+    setPositive(result.positive);
+    setNegative(result.negative);
+
+    // Track lastSeed for archiving correctness on the next shuffle
+    setLastSeed(newSeed);
+
+    showSuccess("Prompt updated");
+  }, [controls.includeNegative, controls.medium, controls.negativeIntensity, controls.safeMode, history, lastSeed, positive, negative]);
+
+  React.useEffect(() => {
+    // Generate an initial prompt so the textarea isn't empty
+    const initialSeed = controls.seed;
+    const config: GeneratorConfig = {
+      seed: initialSeed,
       includeNegative: controls.includeNegative,
       negativeIntensity: controls.negativeIntensity,
       medium: controls.medium,
@@ -73,13 +102,7 @@ export const PromptGenerator: React.FC = () => {
     const result = generatePrompt(config);
     setPositive(result.positive);
     setNegative(result.negative);
-    setLastSeed(result.seed);
-
-    showSuccess("Prompt updated");
-  }, [controls, history, positive, negative, lastSeed]);
-
-  React.useEffect(() => {
-    shuffle();
+    setLastSeed(initialSeed);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
