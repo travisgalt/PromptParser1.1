@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { showSuccess } from "@/utils/toast";
-import { Copy, Shuffle } from "lucide-react";
+import { Copy, Shuffle, Trash2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 
 type Props = {
@@ -15,9 +15,11 @@ type Props = {
   onShuffle: () => void;
   onShare?: () => void;
   onPositiveChange?: (text: string) => void;
+  onClearPositive?: () => void;
+  onClearNegative?: () => void;
 };
 
-export const PromptDisplay: React.FC<Props> = ({ positive, negative, seed, onShuffle, onShare, onPositiveChange }) => {
+export const PromptDisplay: React.FC<Props> = ({ positive, negative, seed, onShuffle, onShare, onPositiveChange, onClearPositive, onClearNegative }) => {
   const copyText = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     showSuccess(`${label} copied`);
@@ -37,9 +39,12 @@ export const PromptDisplay: React.FC<Props> = ({ positive, negative, seed, onShu
             onChange={(e) => onPositiveChange?.(e.target.value)}
             className="min-h-[120px] text-sm"
           />
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="secondary" size="sm" onClick={() => copyText(positive, "Positive prompt")}>
               <Copy className="mr-2 h-4 w-4" /> Copy Positive
+            </Button>
+            <Button variant="outline" size="sm" onClick={onClearPositive}>
+              <Trash2 className="mr-2 h-4 w-4" /> Clear
             </Button>
             <Button size="sm" onClick={onShuffle}>
               <Shuffle className="mr-2 h-4 w-4" /> Shuffle
@@ -52,13 +57,18 @@ export const PromptDisplay: React.FC<Props> = ({ positive, negative, seed, onShu
           </div>
         </div>
 
-        {negative && (
+        {negative !== undefined && (
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">Negative</p>
             <div className="rounded-md bg-muted p-3 text-sm">{negative}</div>
-            <Button variant="secondary" size="sm" onClick={() => copyText(negative, "Negative prompt")}>
-              <Copy className="mr-2 h-4 w-4" /> Copy Negative
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" size="sm" onClick={() => copyText(negative ?? "", "Negative prompt")}>
+                <Copy className="mr-2 h-4 w-4" /> Copy Negative
+              </Button>
+              <Button variant="outline" size="sm" onClick={onClearNegative}>
+                <Trash2 className="mr-2 h-4 w-4" /> Clear
+              </Button>
+            </div>
           </div>
         )}
       </CardContent>

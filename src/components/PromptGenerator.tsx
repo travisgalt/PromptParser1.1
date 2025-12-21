@@ -43,12 +43,12 @@ export const PromptGenerator: React.FC = () => {
     try {
       localStorage.setItem("generator:history", JSON.stringify(next));
     } catch {
-      // let it fail silently
+      // fail silently
     }
   };
 
   const shuffle = React.useCallback(() => {
-    // 1) Archive the current prompt (the one in the textarea) into history if it exists
+    // Archive current prompt if present
     if (positive.trim().length > 0) {
       const prevItem: HistoryItem = {
         id: `${(lastSeed ?? controls.seed)}-${Date.now()}`,
@@ -58,14 +58,14 @@ export const PromptGenerator: React.FC = () => {
         timestamp: Date.now(),
         favorite: false,
       };
-      const prevNext = [prevItem, ...history].slice(0, 25);
+      const prevNext = [prevItem, ...history].slice(0, 40);
       saveHistory(prevNext);
     }
 
-    // 2) Randomize seed by default so Shuffle produces a different prompt
+    // Randomize seed for new generation
     const newSeed = randomSeed();
 
-    // 3) Generate a fresh prompt using the new seed and update the textarea immediately
+    // Generate new prompt
     const config: GeneratorConfig = {
       seed: newSeed,
       includeNegative: controls.includeNegative,
@@ -75,22 +75,19 @@ export const PromptGenerator: React.FC = () => {
     };
     const result = generatePrompt(config);
 
-    // Update controls.seed to reflect the new generation
-    // This ensures the Seed badge in PromptDisplay updates too
+    // Update controls.seed so badge reflects the new seed
     setControls((c) => ({ ...c, seed: newSeed }));
 
-    // Write new prompt into the text area and keep the negative in sync
+    // Populate text field and negative
     setPositive(result.positive);
     setNegative(result.negative);
-
-    // Track lastSeed for archiving correctness on the next shuffle
     setLastSeed(newSeed);
 
     showSuccess("Prompt updated");
-  }, [controls.includeNegative, controls.medium, controls.negativeIntensity, controls.safeMode, history, lastSeed, positive, negative]);
+  }, [controls.includeNegative, controls.medium, controls.negativeIntensity, controls.safeMode, controls.seed, history, lastSeed, positive, negative]);
 
   React.useEffect(() => {
-    // Generate an initial prompt so the textarea isn't empty
+    // Generate initial prompt
     const initialSeed = controls.seed;
     const config: GeneratorConfig = {
       seed: initialSeed,
@@ -106,14 +103,14 @@ export const PromptGenerator: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Keep URL in sync when user presses Share; we don't push state on every change
+  // Share
   const onShare = () => {
     const url = buildShareUrl(controls);
     navigator.clipboard.writeText(url);
     showSuccess("Shareable link copied");
   };
 
-  // Actions for History
+  // History actions
   const onCopyPositive = (id: string) => {
     const item = history.find((h) => h.id === id);
     if (item) navigator.clipboard.writeText(item.positive);
@@ -142,6 +139,14 @@ export const PromptGenerator: React.FC = () => {
     shuffle();
   };
 
+  const onClearPositive = () => {
+    setPositive("");
+  };
+
+  const onClearNegative = () => {
+    setNegative("");
+  };
+
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -152,6 +157,8 @@ export const PromptGenerator: React.FC = () => {
           onShuffle={onShuffleClick}
           onShare={onShare}
           onPositiveChange={setPositive}
+          onClearPositive={onClearPositive}
+          onClearNegative={onClearNegative}
         />
         <PromptControls
           state={controls}
