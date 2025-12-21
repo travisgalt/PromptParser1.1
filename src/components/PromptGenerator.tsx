@@ -5,6 +5,7 @@ import { PromptControls, ControlsState } from "./generator/PromptControls";
 import { PromptDisplay } from "./generator/PromptDisplay";
 import { generatePrompt, type GeneratorConfig } from "@/lib/prompt-engine";
 import { generateNegativePrompt } from "@/lib/prompt-engine";
+import { supabase } from "@/integrations/supabase/client";
 import { showSuccess } from "@/utils/toast";
 import { HistoryList, type HistoryItem } from "./generator/HistoryList";
 import { buildShareUrl, parseControlsFromQuery } from "@/lib/url-state";
@@ -38,6 +39,21 @@ export const PromptGenerator: React.FC = () => {
     }
   });
   const [lastSeed, setLastSeed] = React.useState<number | undefined>(undefined);
+  const [negPool, setNegPool] = React.useState<string[] | null>(null);
+
+  React.useEffect(() => {
+    // Load active negative keywords (if admin set any); fallback handled in shuffler
+    supabase
+      .from("negative_keywords")
+      .select("keyword, active, weight")
+      .eq("active", true)
+      .then(({ data }) => {
+        if (data && Array.isArray(data)) {
+          // Optionally weight-sort later; for now, just take keywords
+          setNegPool(data.map((d: any) => d.keyword));
+        }
+      });
+  }, []);
 
   const saveHistory = (next: HistoryItem[]) => {
     setHistory(next);
@@ -83,7 +99,7 @@ export const PromptGenerator: React.FC = () => {
 
   // Shuffle Negative handler
   const onShuffleNegative = () => {
-    const nextNeg = generateNegativePrompt(controls.negativeIntensity);
+    const nextNeg = generateNegativePrompt(controls.negativeIntensity, negPool || undefined);
     setNegative(nextNeg);
     showSuccess("Negative updated");
   };
