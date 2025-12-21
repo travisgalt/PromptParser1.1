@@ -8,9 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Shuffle, User } from "lucide-react";
+import { User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 export type ControlsState = {
   seed: number;
@@ -23,14 +22,12 @@ export type ControlsState = {
 type Props = {
   state: ControlsState;
   onChange: (next: ControlsState) => void;
-  onShuffle: () => void;
   onRandomizeSeed: () => void;
 };
 
 export const PromptControls: React.FC<Props> = ({
   state,
   onChange,
-  onShuffle,
   onRandomizeSeed,
 }) => {
   const setField = <K extends keyof ControlsState>(key: K, value: ControlsState[K]) => {
@@ -44,8 +41,6 @@ export const PromptControls: React.FC<Props> = ({
         <CardTitle className="text-xl">Prompt Controls</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <ThemeToggle />
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="seed">Seed</Label>

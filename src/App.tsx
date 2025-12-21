@@ -10,6 +10,7 @@ import { ThemeProvider } from "next-themes";
 import Login from "./pages/Login";
 import { SessionProvider } from "@/components/auth/SessionProvider";
 import Admin from "./pages/Admin";
+import AppHeader from "@/components/AppHeader";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +22,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <SessionProvider>
+            <AppHeader />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/profile" element={<Profile />} />
