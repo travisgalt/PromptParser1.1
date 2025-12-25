@@ -17,6 +17,7 @@ export type PoseItem = {
   requiresPockets?: boolean;
   usesHandsInPocket?: boolean;
   publicFriendly?: boolean;
+  forcedShotType?: string; // e.g. "cowboy shot", "full body"
 };
 
 export type AccessoryItem = {
@@ -61,6 +62,37 @@ export const eyeColors: string[] = [
   "golden eyes, sharp gaze",
 ];
 
+export const bodyTypes: string[] = [
+  "slender body",
+  "curvy body, thick thighs",
+  "athletic build, toned",
+  "petite figure",
+  "average build",
+];
+
+export const expressions: Record<string, string[]> = {
+  positive: ["soft smile", "happy", "laughing", "playful smirk", "gentle expression"],
+  neutral: ["neutral expression", "calm", "focused", "looking at viewer"],
+  moody: ["serious face", "melancholic", "cold gaze", "distant look", "parted lips"],
+};
+
+export const shotTypes: string[] = [
+  "close-up",
+  "portrait",
+  "upper body",
+  "cowboy shot",
+  "full body",
+  "wide shot",
+];
+
+export const cameraAngles: string[] = [
+  "eye level",
+  "from below",
+  "from above",
+  "dutch angle",
+  "dynamic angle",
+];
+
 export const outfits: OutfitItem[] = [
   { label: "shiny latex bodysuit, high collar, chains", hasPockets: false, contextsAllowed: ["studio", "indoor_private"] },
   { label: "distressed black denim jacket, torn fishnet tights, band t-shirt", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
@@ -79,15 +111,15 @@ export const outfits: OutfitItem[] = [
 ];
 
 export const poses: PoseItem[] = [
-  { label: "sitting, legs crossed, looking at viewer", publicFriendly: true },
-  { label: "selfie pose, peace sign, close up, dutch angle", publicFriendly: true },
+  { label: "sitting, legs crossed, looking at viewer", publicFriendly: true, forcedShotType: "full body" },
+  { label: "selfie pose, peace sign, close up, dutch angle", publicFriendly: true, forcedShotType: "close-up" },
   { label: "looking back over shoulder, dynamic angle", publicFriendly: true },
-  { label: "squatting, knees to chest" },
-  { label: "upper body, cowboy shot, arms crossed", publicFriendly: true },
-  { label: "standing, hand on hip", publicFriendly: true },
-  { label: "standing, hand in pocket, hip cocked", requiresPockets: true, usesHandsInPocket: true, publicFriendly: true },
-  { label: "walking, hands in pockets, looking away", requiresPockets: true, usesHandsInPocket: true, publicFriendly: true },
-  { label: "leaning against wall, hand in pocket", requiresPockets: true, usesHandsInPocket: true, publicFriendly: true },
+  { label: "squatting, knees to chest", forcedShotType: "full body" },
+  { label: "upper body, cowboy shot, arms crossed", publicFriendly: true, forcedShotType: "cowboy shot" },
+  { label: "standing, hand on hip", publicFriendly: true, forcedShotType: "full body" },
+  { label: "standing, hand in pocket, hip cocked", requiresPockets: true, usesHandsInPocket: true, publicFriendly: true, forcedShotType: "full body" },
+  { label: "walking, hands in pockets, looking away", requiresPockets: true, usesHandsInPocket: true, publicFriendly: true, forcedShotType: "full body" },
+  { label: "leaning against wall, hand in pocket", requiresPockets: true, usesHandsInPocket: true, publicFriendly: true, forcedShotType: "cowboy shot" },
 ];
 
 export const accessories: AccessoryItem[] = [

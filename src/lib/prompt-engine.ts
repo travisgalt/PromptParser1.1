@@ -3,6 +3,8 @@ import {
   qualityTags,
   hairStyles,
   eyeColors,
+  bodyTypes,
+  expressions,
   outfits,
   poses,
   accessories,
@@ -10,6 +12,8 @@ import {
   lightingByContext,
   photoTech,
   renderTech,
+  shotTypes,
+  cameraAngles,
   type Medium,
   type OutfitItem,
   type PoseItem,
@@ -38,6 +42,8 @@ export type GeneratedPrompt = {
     quality: string;
     hair: string;
     eyes: string;
+    body: string;
+    expression: string;
     outfit: OutfitItem;
     pose: PoseItem;
     accessories: AccessoryItem[];
@@ -46,6 +52,8 @@ export type GeneratedPrompt = {
     tech: string;
     layeredOuterwear?: string;
     layeredFootwear?: string;
+    shotType?: string;
+    cameraAngle?: string;
   };
 };
 
@@ -80,6 +88,35 @@ function matchesScenario(bg: BackgroundItem, scenario: ScenarioKey): boolean {
   return true;
 }
 
+function pickExpression(scenario: ScenarioKey, rng: RNG): string {
+  // Logic: Happy for day, moody/neutral for night/indoor
+  if (scenario === "outdoor_public_day") {
+    return pickOne(rng, [...expressions.positive, ...expressions.neutral]);
+  } else if (scenario === "outdoor_public_night" || scenario === "indoor_private") {
+    return pickOne(rng, [...expressions.neutral, ...expressions.moody]);
+  } else {
+    // Studio - can be anything
+    return pickOne(rng, [...expressions.positive, ...expressions.neutral, ...expressions.moody]);
+  }
+}
+
+function pickCameraLogic(medium: Medium, pose: PoseItem, rng: RNG) {
+  if (medium !== "photo") return { shotType: undefined, cameraAngle: undefined, lens: undefined };
+
+  // If pose forces a shot type (e.g., selfie -> close-up), use it.
+  const shotType = pose.forcedShotType ?? pickOne(rng, shotTypes);
+  const cameraAngle = pickOne(rng, cameraAngles);
+
+  // Derive simple lens hint based on shot type
+  let lens = "";
+  if (shotType === "close-up" || shotType === "portrait") lens = "85mm lens";
+  else if (shotType === "wide shot") lens = "24mm lens, wide angle";
+  else if (shotType === "full body") lens = "50mm lens";
+  else lens = "35mm lens";
+
+  return { shotType, cameraAngle, lens };
+}
+
 export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   const rng = mulberry32(config.seed);
 
@@ -95,6 +132,8 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   const quality = pickOne(rng, qualityTags);
   const hair = pickOne(rng, hairStyles);
   const eyes = pickOne(rng, eyeColors);
+  const body = pickOne(rng, bodyTypes);
+  const expression = pickExpression(scenario, rng);
 
   // Outfit gated by scenario
   const validOutfits = outfits.filter((o) => o.contextsAllowed.includes(scenario));
@@ -131,10 +170,17 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   const acc = pickMany(rng, accPool, accCount);
 
   // Tech terms based on medium (photo vs render)
-  const tech = config.medium === "photo" ? pickOne(rng, photoTech) : pickOne(rng, renderTech);
+  let tech = config.medium === "photo" ? pickOne(rng, photoTech) : pickOne(rng, renderTech);
+
+  // --- CAMERA LOGIC (Only for Photo) ---
+  const { shotType, cameraAngle, lens } = pickCameraLogic(config.medium, pose, rng);
+  if (shotType && cameraAngle && lens) {
+    // Append camera details to tech block or create a new block
+    tech = `${tech}, ${shotType}, ${cameraAngle}, ${lens}`;
+  }
 
   // Identity
-  const identity = `1girl, solo, (elf:1.2), pointy ears, ${hair}, ${eyes}, ${pose.label}`;
+  const identity = `1girl, solo, (elf:1.2), pointy ears, ${body}, ${hair}, ${eyes}, ${expression}, ${pose.label}`;
 
   // Fashion composition (outfit + optional layering + accessories)
   const fashionParts: string[] = [outfit.label];
@@ -164,6 +210,8 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
       quality,
       hair,
       eyes,
+      body,
+      expression,
       outfit,
       pose,
       accessories: acc,
@@ -172,6 +220,8 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
       tech,
       layeredOuterwear,
       layeredFootwear,
+      shotType,
+      cameraAngle,
     },
   };
 }
