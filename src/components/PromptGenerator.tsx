@@ -6,6 +6,7 @@ import { PromptDisplay } from "./generator/PromptDisplay";
 import { generatePrompt, type GeneratorConfig } from "@/lib/prompt-engine";
 import { generateNegativePrompt } from "@/lib/prompt-engine";
 import { supabase } from "@/integrations/supabase/client";
+import { useSession } from "@/components/auth/SessionProvider";
 import { showSuccess } from "@/utils/toast";
 import { HistoryList, type HistoryItem } from "./generator/HistoryList";
 import { buildShareUrl, parseControlsFromQuery } from "@/lib/url-state";
@@ -42,6 +43,8 @@ export const PromptGenerator: React.FC = () => {
   const [lastContext, setLastContext] = React.useState<{ medium?: any; scenario?: any } | undefined>(undefined);
   const [negPool, setNegPool] = React.useState<string[] | null>(null);
 
+  const { session } = (useSession as any) ? useSession() : { session: null };
+
   React.useEffect(() => {
     // Load active negative keywords (if admin set any); fallback handled in shuffler
     supabase
@@ -56,13 +59,37 @@ export const PromptGenerator: React.FC = () => {
       });
   }, []);
 
+  // Load cloud history when signed in
+  React.useEffect(() => {
+    async function loadCloudHistory() {
+      if (!session?.user?.id) return;
+      const { data, error } = await supabase
+        .from("prompt_history")
+        .select("id, positive_text, negative_text, seed, created_at")
+        .eq("user_id", session.user.id)
+        .order("created_at", { ascending: false })
+        .limit(40);
+      if (!error && data) {
+        const items = data.map((row: any) => ({
+          id: row.id,
+          positive: row.positive_text,
+          negative: row.negative_text || undefined,
+          seed: row.seed ?? 0,
+          timestamp: new Date(row.created_at).getTime(),
+          favorite: false,
+        })) as HistoryItem[];
+        setHistory(items);
+        try { localStorage.setItem("generator:history", JSON.stringify(items)); } catch {}
+      }
+    }
+    loadCloudHistory();
+  }, [session?.user?.id]);
+
   const saveHistory = (next: HistoryItem[]) => {
     setHistory(next);
     try {
       localStorage.setItem("generator:history", JSON.stringify(next));
-    } catch {
-      // fail silently
-    }
+    } catch {}
   };
 
   const shuffle = React.useCallback(() => {
@@ -78,10 +105,27 @@ export const PromptGenerator: React.FC = () => {
       };
       const prevNext = [prevItem, ...history].slice(0, 40);
       saveHistory(prevNext);
+
+      // Also persist to cloud if signed in
+      if (session?.user?.id) {
+        const configJson = {
+          medium: controls.medium,
+          includeNegative: controls.includeNegative,
+          negativeIntensity: controls.negativeIntensity,
+          safeMode: controls.safeMode,
+        };
+        supabase.from("prompt_history").insert({
+          user_id: session.user.id,
+          positive_text: prevItem.positive,
+          negative_text: prevItem.negative ?? null,
+          seed: prevItem.seed,
+          config_json: configJson,
+        });
+      }
     }
 
-    // Randomize seed and generate new positive+negative
-    const newSeed = randomSeed();
+    // Generate new prompt...
+    const newSeed = Math.floor(Math.random() * 1_000_000_000);
     const config: GeneratorConfig = {
       seed: newSeed,
       includeNegative: controls.includeNegative,
@@ -97,7 +141,7 @@ export const PromptGenerator: React.FC = () => {
     setLastSeed(newSeed);
     setLastContext({ medium: controls.medium, scenario: result.selections.scenario });
     showSuccess("Prompt updated");
-  }, [controls.includeNegative, controls.medium, controls.negativeIntensity, controls.safeMode, controls.seed, history, lastSeed, positive, negative]);
+  }, [controls.includeNegative, controls.medium, controls.negativeIntensity, controls.safeMode, history, lastSeed, positive, negative, session?.user?.id]);
 
   // Shuffle Negative handler
   const onShuffleNegative = () => {

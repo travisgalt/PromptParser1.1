@@ -145,15 +145,27 @@ export default function Admin() {
     );
   }
 
-  // User actions
+  // Use edge function for admin/ban actions
   const updateUser = async (id: string, patch: Partial<ProfileRow>) => {
-    const { error } = await supabase.from("profiles").update(patch).eq("id", id);
+    const action =
+      patch.is_admin === true ? "grant_admin" :
+      patch.is_admin === false ? "revoke_admin" :
+      patch.is_banned === true ? "ban_user" :
+      patch.is_banned === false ? "unban_user" : null;
+
+    if (!action) return;
+
+    const { error } = await supabase.functions.invoke("admin-users", {
+      body: { action, target_user_id: id },
+    });
+
     if (error) {
       showError("Update failed");
       return;
     }
+
     setProfiles((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
-    showSuccess("Updated user");
+    showSuccess("Updated user via backend");
   };
 
   // Negative keyword actions
