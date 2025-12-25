@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { showSuccess } from "@/utils/toast";
-import { Copy, Shuffle, Trash2 } from "lucide-react";
+import { Copy, Shuffle } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 type Props = {
   positive: string;
@@ -18,9 +19,23 @@ type Props = {
   onClearPositive?: () => void;
   onClearNegative?: () => void;
   onShuffleNegative?: () => void;
+  disabledActions?: boolean;
+  bannerMessage?: string;
 };
 
-export const PromptDisplay: React.FC<Props> = ({ positive, negative, seed, onShuffle, onShare, onPositiveChange, onClearPositive, onClearNegative, onShuffleNegative }) => {
+export const PromptDisplay: React.FC<Props> = ({
+  positive,
+  negative,
+  seed,
+  onShuffle,
+  onShare,
+  onPositiveChange,
+  onClearPositive,
+  onClearNegative,
+  onShuffleNegative,
+  disabledActions = false,
+  bannerMessage,
+}) => {
   const copyText = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     showSuccess(`${label} copied`);
@@ -33,6 +48,13 @@ export const PromptDisplay: React.FC<Props> = ({ positive, negative, seed, onShu
         <Badge variant="secondary">Seed: {seed}</Badge>
       </CardHeader>
       <CardContent className="space-y-4">
+        {bannerMessage && (
+          <Alert variant="destructive">
+            <AlertTitle>Notice</AlertTitle>
+            <AlertDescription>{bannerMessage}</AlertDescription>
+          </Alert>
+        )}
+
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">Positive</p>
           <Textarea
@@ -41,13 +63,17 @@ export const PromptDisplay: React.FC<Props> = ({ positive, negative, seed, onShu
             className="min-h-[120px] text-sm"
           />
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" size="sm" onClick={() => copyText(positive, "Positive prompt")}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => copyText(positive, "Positive prompt")}
+            >
               <Copy className="mr-2 h-4 w-4" /> Copy Positive
             </Button>
             <Button variant="outline" size="sm" onClick={onClearPositive}>
-              <Trash2 className="mr-2 h-4 w-4" /> Clear
+              Clear
             </Button>
-            <Button size="sm" onClick={onShuffle}>
+            <Button size="sm" onClick={onShuffle} disabled={disabledActions}>
               <Shuffle className="mr-2 h-4 w-4" /> Shuffle
             </Button>
             {onShare && (
@@ -63,13 +89,17 @@ export const PromptDisplay: React.FC<Props> = ({ positive, negative, seed, onShu
             <p className="text-sm text-muted-foreground">Negative</p>
             <div className="rounded-md bg-muted p-3 text-sm">{negative}</div>
             <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" size="sm" onClick={() => copyText(negative ?? "", "Negative prompt")}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => copyText(negative ?? "", "Negative prompt")}
+              >
                 <Copy className="mr-2 h-4 w-4" /> Copy Negative
               </Button>
               <Button variant="outline" size="sm" onClick={onClearNegative}>
                 Clear
               </Button>
-              <Button size="sm" onClick={onShuffleNegative}>
+              <Button size="sm" onClick={onShuffleNegative} disabled={disabledActions}>
                 <Shuffle className="mr-2 h-4 w-4" /> Shuffle Negative
               </Button>
             </div>

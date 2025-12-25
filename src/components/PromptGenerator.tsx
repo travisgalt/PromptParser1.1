@@ -6,17 +6,16 @@ import { PromptDisplay } from "./generator/PromptDisplay";
 import { generatePrompt, type GeneratorConfig } from "@/lib/prompt-engine";
 import { generateNegativePrompt } from "@/lib/prompt-engine";
 import { supabase } from "@/integrations/supabase/client";
-import { useSession } from "@/components/auth/SessionProvider";
-import { showSuccess } from "@/utils/toast";
+import { showSuccess, showError } from "@/utils/toast";
 import { HistoryList, type HistoryItem } from "./generator/HistoryList";
 import { buildShareUrl, parseControlsFromQuery } from "@/lib/url-state";
+import { useSession } from "@/components/auth/SessionProvider";
 
 function randomSeed() {
   return Math.floor(Math.random() * 1_000_000_000);
 }
 
 export const PromptGenerator: React.FC = () => {
-  // Initialize controls from URL if present
   const initialControls = React.useMemo(() => {
     const parsed = parseControlsFromQuery(window.location.search);
     return {
@@ -27,6 +26,9 @@ export const PromptGenerator: React.FC = () => {
       safeMode: parsed.safeMode ?? true,
     } as ControlsState;
   }, []);
+
+  const { session } = useSession();
+  const userId = session?.user?.id;
 
   const [controls, setControls] = React.useState<ControlsState>(initialControls);
   const [positive, setPositive] = React.useState<string>("");
@@ -42,57 +44,97 @@ export const PromptGenerator: React.FC = () => {
   const [lastSeed, setLastSeed] = React.useState<number | undefined>(undefined);
   const [lastContext, setLastContext] = React.useState<{ medium?: any; scenario?: any } | undefined>(undefined);
   const [negPool, setNegPool] = React.useState<string[] | null>(null);
+  const [isBanned, setIsBanned] = React.useState<boolean>(false);
+  const [favoritesIndex, setFavoritesIndex] = React.useState<Set<string>>(new Set());
 
-  const { session } = (useSession as any) ? useSession() : { session: null };
+  // Helper to build a unique key for a prompt to match favorites
+  const favKey = (p: { positive: string; seed: number | undefined }) => `${p.seed ?? 0}::${p.positive}`;
 
+  // Load active negative keywords
   React.useEffect(() => {
-    // Load active negative keywords (if admin set any); fallback handled in shuffler
     supabase
       .from("negative_keywords")
       .select("keyword, active, weight")
       .eq("active", true)
       .then(({ data }) => {
         if (data && Array.isArray(data)) {
-          // Optionally weight-sort later; for now, just take keywords
           setNegPool(data.map((d: any) => d.keyword));
         }
       });
   }, []);
 
-  // Load cloud history when signed in
+  // Load cloud ban status, favorites, and history when signed in
   React.useEffect(() => {
-    async function loadCloudHistory() {
-      if (!session?.user?.id) return;
-      const { data, error } = await supabase
+    async function loadUserData() {
+      if (!userId) return;
+
+      // Ban status
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("is_banned")
+        .eq("id", userId)
+        .single();
+      setIsBanned(!!prof?.is_banned);
+
+      // Favorites
+      const { data: favs, error: favErr } = await supabase
+        .from("favorites")
+        .select("positive_text, seed")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (!favErr && favs) {
+        const set = new Set<string>(favs.map((f: any) => favKey({ positive: f.positive_text, seed: f.seed })));
+        setFavoritesIndex(set);
+      }
+
+      // History
+      const { data: hist, error: histErr } = await supabase
         .from("prompt_history")
         .select("id, positive_text, negative_text, seed, created_at")
-        .eq("user_id", session.user.id)
+        .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(40);
-      if (!error && data) {
-        const items = data.map((row: any) => ({
+      if (!histErr && hist) {
+        const items = hist.map((row: any) => ({
           id: row.id,
           positive: row.positive_text,
           negative: row.negative_text || undefined,
           seed: row.seed ?? 0,
           timestamp: new Date(row.created_at).getTime(),
-          favorite: false,
+          favorite: false, // will be marked below
         })) as HistoryItem[];
-        setHistory(items);
-        try { localStorage.setItem("generator:history", JSON.stringify(items)); } catch {}
+
+        // Mark favorites in history
+        const marked = items.map((it) => ({
+          ...it,
+          favorite: favoritesIndex.has(favKey({ positive: it.positive, seed: it.seed })),
+        }));
+        setHistory(marked);
+        try {
+          localStorage.setItem("generator:history", JSON.stringify(marked));
+        } catch {}
       }
     }
-    loadCloudHistory();
-  }, [session?.user?.id]);
+    loadUserData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   const saveHistory = (next: HistoryItem[]) => {
     setHistory(next);
     try {
       localStorage.setItem("generator:history", JSON.stringify(next));
-    } catch {}
+    } catch {
+      // ignore
+    }
   };
 
   const shuffle = React.useCallback(() => {
+    if (isBanned) {
+      showError("Your account is banned. Prompt generation is disabled.");
+      return;
+    }
+
     // Archive current prompt if present
     if (positive.trim().length > 0) {
       const prevItem: HistoryItem = {
@@ -101,13 +143,13 @@ export const PromptGenerator: React.FC = () => {
         negative,
         seed: lastSeed ?? controls.seed,
         timestamp: Date.now(),
-        favorite: false,
+        favorite: favoritesIndex.has(favKey({ positive, seed: lastSeed ?? controls.seed })),
       };
       const prevNext = [prevItem, ...history].slice(0, 40);
       saveHistory(prevNext);
 
-      // Also persist to cloud if signed in
-      if (session?.user?.id) {
+      // Persist to cloud if signed in
+      if (userId) {
         const configJson = {
           medium: controls.medium,
           includeNegative: controls.includeNegative,
@@ -115,7 +157,7 @@ export const PromptGenerator: React.FC = () => {
           safeMode: controls.safeMode,
         };
         supabase.from("prompt_history").insert({
-          user_id: session.user.id,
+          user_id: userId,
           positive_text: prevItem.positive,
           negative_text: prevItem.negative ?? null,
           seed: prevItem.seed,
@@ -124,8 +166,8 @@ export const PromptGenerator: React.FC = () => {
       }
     }
 
-    // Generate new prompt...
-    const newSeed = Math.floor(Math.random() * 1_000_000_000);
+    // Generate new prompt
+    const newSeed = randomSeed();
     const config: GeneratorConfig = {
       seed: newSeed,
       includeNegative: controls.includeNegative,
@@ -141,16 +183,14 @@ export const PromptGenerator: React.FC = () => {
     setLastSeed(newSeed);
     setLastContext({ medium: controls.medium, scenario: result.selections.scenario });
     showSuccess("Prompt updated");
-  }, [controls.includeNegative, controls.medium, controls.negativeIntensity, controls.safeMode, history, lastSeed, positive, negative, session?.user?.id]);
+  }, [controls.includeNegative, controls.medium, controls.negativeIntensity, controls.safeMode, history, lastSeed, positive, negative, userId, isBanned, favoritesIndex]);
 
-  // Shuffle Negative handler
   const onShuffleNegative = () => {
-    const nextNeg = generateNegativePrompt(
-      controls.negativeIntensity, 
-      negPool || undefined, 
-      undefined, 
-      lastContext
-    );
+    if (isBanned) {
+      showError("Your account is banned. Prompt generation is disabled.");
+      return;
+    }
+    const nextNeg = generateNegativePrompt(controls.negativeIntensity, negPool || undefined, undefined, lastContext);
     setNegative(nextNeg);
     showSuccess("Negative updated");
   };
@@ -173,7 +213,6 @@ export const PromptGenerator: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Share
   const onShare = () => {
     const url = buildShareUrl(controls);
     navigator.clipboard.writeText(url);
@@ -191,9 +230,53 @@ export const PromptGenerator: React.FC = () => {
     if (item && item.negative) navigator.clipboard.writeText(item.negative);
   };
 
-  const onToggleFavorite = (id: string) => {
-    const next = history.map((h) => (h.id === id ? { ...h, favorite: !h.favorite } : h));
+  const onToggleFavorite = async (id: string) => {
+    const item = history.find((h) => h.id === id);
+    if (!item) return;
+
+    const key = favKey({ positive: item.positive, seed: item.seed });
+    const nextFav = !item.favorite;
+
+    // Update UI immediately
+    const next = history.map((h) => (h.id === id ? { ...h, favorite: nextFav } : h));
     saveHistory(next);
+
+    // Update in-memory index
+    setFavoritesIndex((prev) => {
+      const copy = new Set(prev);
+      if (nextFav) copy.add(key);
+      else copy.delete(key);
+      return copy;
+    });
+
+    // Persist to Supabase if signed in
+    if (userId) {
+      if (nextFav) {
+        const { error } = await supabase.from("favorites").insert({
+          user_id: userId,
+          positive_text: item.positive,
+          negative_text: item.negative ?? null,
+          seed: item.seed,
+          config_json: {
+            medium: controls.medium,
+            includeNegative: controls.includeNegative,
+            negativeIntensity: controls.negativeIntensity,
+            safeMode: controls.safeMode,
+          },
+        });
+        if (error) showError("Failed to save favorite");
+        else showSuccess("Saved to favorites");
+      } else {
+        const { error } = await supabase
+          .from("favorites")
+          .delete()
+          .eq("user_id", userId)
+          .eq("positive_text", item.positive)
+          .eq("seed", item.seed ?? 0);
+        if (error) showError("Failed to remove favorite");
+        else showSuccess("Removed from favorites");
+      }
+    }
   };
 
   const onClearHistory = () => {
@@ -203,18 +286,6 @@ export const PromptGenerator: React.FC = () => {
 
   const randomizeSeed = () => {
     setControls((c) => ({ ...c, seed: randomSeed() }));
-  };
-
-  const onShuffleClick = () => {
-    shuffle();
-  };
-
-  const onClearPositive = () => {
-    setPositive("");
-  };
-
-  const onClearNegative = () => {
-    setNegative("");
   };
 
   return (
@@ -227,9 +298,11 @@ export const PromptGenerator: React.FC = () => {
           onShuffle={shuffle}
           onShare={onShare}
           onPositiveChange={setPositive}
-          onClearPositive={onClearPositive}
-          onClearNegative={onClearNegative}
+          onClearPositive={() => setPositive("")}
+          onClearNegative={() => setNegative("")}
           onShuffleNegative={onShuffleNegative}
+          disabledActions={isBanned}
+          bannerMessage={isBanned ? "Your account is banned. Prompt generation is currently disabled." : undefined}
         />
         <PromptControls
           state={controls}
