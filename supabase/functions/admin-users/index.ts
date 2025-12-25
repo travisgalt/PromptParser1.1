@@ -19,7 +19,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
   }
 
-  // Create a client that can verify the JWT and also has service role for DB writes
+  // Service role client for secure DB writes; pass through caller auth for user context
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
     global: { headers: { Authorization: authHeader } },
   });
@@ -30,14 +30,14 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: corsHeaders });
   }
 
-  // Check admin
-  const { data: adminCheck } = await supabase
+  // Verify admin
+  const { data: adminCheck, error: adminErr } = await supabase
     .from("profiles")
     .select("is_admin")
     .eq("id", callerId)
     .single();
 
-  if (!adminCheck?.is_admin) {
+  if (adminErr || !adminCheck?.is_admin) {
     return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
   }
 
@@ -54,7 +54,6 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: "Missing action or target_user_id" }), { status: 400, headers: corsHeaders });
   }
 
-  // Perform action
   let patch: Record<string, any> | null = null;
   if (action === "grant_admin") patch = { is_admin: true };
   else if (action === "revoke_admin") patch = { is_admin: false };
@@ -77,5 +76,8 @@ serve(async (req) => {
     details: { patch },
   });
 
-  return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  return new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 });
