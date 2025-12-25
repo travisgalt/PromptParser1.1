@@ -50,7 +50,6 @@ export default function Admin() {
     weight: 1.0,
   });
 
-  // Load admin status and data
   React.useEffect(() => {
     async function load() {
       if (!userId) {
@@ -68,27 +67,17 @@ export default function Admin() {
       setIsAdmin(admin);
 
       if (admin) {
-        const { data: profs, error: pErr } = await supabase
+        const { data: profs } = await supabase
           .from("profiles")
           .select("id, display_name, avatar_url, bio, theme_preference, is_admin, is_banned")
           .order("updated_at", { ascending: false });
+        setProfiles(profs || []);
 
-        if (pErr) {
-          showError("Failed to load users");
-        } else {
-          setProfiles(profs || []);
-        }
-
-        const { data: negs, error: nErr } = await supabase
+        const { data: negs } = await supabase
           .from("negative_keywords")
           .select("*")
           .order("updated_at", { ascending: false });
-
-        if (nErr) {
-          showError("Failed to load negative keywords");
-        } else {
-          setNegatives(negs || []);
-        }
+        setNegatives(negs || []);
       }
 
       setLoading(false);
@@ -96,7 +85,6 @@ export default function Admin() {
     load();
   }, [userId]);
 
-  // Guards
   if (!session) {
     return (
       <div className="container mx-auto px-4 py-6">
@@ -104,10 +92,6 @@ export default function Admin() {
           <CardHeader>
             <CardTitle>Admin Panel</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">You must be logged in to access the admin panel.</p>
-            <Button onClick={() => navigate("/login")}>Go to Login</Button>
-          </CardContent>
         </Card>
       </div>
     );
@@ -145,7 +129,7 @@ export default function Admin() {
     );
   }
 
-  // Use edge function for admin/ban actions
+  // Use edge function for admin/ban actions so we get server-side checks + audit logs
   const updateUser = async (id: string, patch: Partial<ProfileRow>) => {
     const action =
       patch.is_admin === true ? "grant_admin" :
@@ -168,7 +152,6 @@ export default function Admin() {
     showSuccess("Updated user via backend");
   };
 
-  // Negative keyword actions
   const addNegative = async () => {
     if (!newNeg.keyword.trim()) return;
     const payload = {

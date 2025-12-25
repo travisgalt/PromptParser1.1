@@ -47,10 +47,8 @@ export const PromptGenerator: React.FC = () => {
   const [isBanned, setIsBanned] = React.useState<boolean>(false);
   const [favoritesIndex, setFavoritesIndex] = React.useState<Set<string>>(new Set());
 
-  // Helper to build a unique key for a prompt to match favorites
   const favKey = (p: { positive: string; seed: number | undefined }) => `${p.seed ?? 0}::${p.positive}`;
 
-  // Load active negative keywords
   React.useEffect(() => {
     supabase
       .from("negative_keywords")
@@ -63,7 +61,6 @@ export const PromptGenerator: React.FC = () => {
       });
   }, []);
 
-  // Load cloud ban status, favorites, and history when signed in
   React.useEffect(() => {
     async function loadUserData() {
       if (!userId) return;
@@ -77,35 +74,34 @@ export const PromptGenerator: React.FC = () => {
       setIsBanned(!!prof?.is_banned);
 
       // Favorites
-      const { data: favs, error: favErr } = await supabase
+      const { data: favs } = await supabase
         .from("favorites")
         .select("positive_text, seed")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(200);
-      if (!favErr && favs) {
+      if (favs) {
         const set = new Set<string>(favs.map((f: any) => favKey({ positive: f.positive_text, seed: f.seed })));
         setFavoritesIndex(set);
       }
 
       // History
-      const { data: hist, error: histErr } = await supabase
+      const { data: hist } = await supabase
         .from("prompt_history")
         .select("id, positive_text, negative_text, seed, created_at")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(40);
-      if (!histErr && hist) {
+      if (hist) {
         const items = hist.map((row: any) => ({
           id: row.id,
           positive: row.positive_text,
           negative: row.negative_text || undefined,
           seed: row.seed ?? 0,
           timestamp: new Date(row.created_at).getTime(),
-          favorite: false, // will be marked below
+          favorite: false,
         })) as HistoryItem[];
 
-        // Mark favorites in history
         const marked = items.map((it) => ({
           ...it,
           favorite: favoritesIndex.has(favKey({ positive: it.positive, seed: it.seed })),
@@ -124,9 +120,7 @@ export const PromptGenerator: React.FC = () => {
     setHistory(next);
     try {
       localStorage.setItem("generator:history", JSON.stringify(next));
-    } catch {
-      // ignore
-    }
+    } catch {}
   };
 
   const shuffle = React.useCallback(() => {
@@ -148,7 +142,6 @@ export const PromptGenerator: React.FC = () => {
       const prevNext = [prevItem, ...history].slice(0, 40);
       saveHistory(prevNext);
 
-      // Persist to cloud if signed in
       if (userId) {
         const configJson = {
           medium: controls.medium,
@@ -166,7 +159,6 @@ export const PromptGenerator: React.FC = () => {
       }
     }
 
-    // Generate new prompt
     const newSeed = randomSeed();
     const config: GeneratorConfig = {
       seed: newSeed,
@@ -196,7 +188,6 @@ export const PromptGenerator: React.FC = () => {
   };
 
   React.useEffect(() => {
-    // Generate initial prompt
     const initialSeed = controls.seed;
     const config: GeneratorConfig = {
       seed: initialSeed,
@@ -219,7 +210,6 @@ export const PromptGenerator: React.FC = () => {
     showSuccess("Shareable link copied");
   };
 
-  // History actions
   const onCopyPositive = (id: string) => {
     const item = history.find((h) => h.id === id);
     if (item) navigator.clipboard.writeText(item.positive);
@@ -237,11 +227,9 @@ export const PromptGenerator: React.FC = () => {
     const key = favKey({ positive: item.positive, seed: item.seed });
     const nextFav = !item.favorite;
 
-    // Update UI immediately
     const next = history.map((h) => (h.id === id ? { ...h, favorite: nextFav } : h));
     saveHistory(next);
 
-    // Update in-memory index
     setFavoritesIndex((prev) => {
       const copy = new Set(prev);
       if (nextFav) copy.add(key);
@@ -249,7 +237,6 @@ export const PromptGenerator: React.FC = () => {
       return copy;
     });
 
-    // Persist to Supabase if signed in
     if (userId) {
       if (nextFav) {
         const { error } = await supabase.from("favorites").insert({
