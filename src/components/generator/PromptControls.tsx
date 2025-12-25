@@ -8,8 +8,14 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { User } from "lucide-react";
+import { User, HelpCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export type ControlsState = {
   seed: number;
@@ -90,7 +96,21 @@ export const PromptControls: React.FC<Props> = ({
               />
             </div>
             <div className="space-y-2">
-              <Label>Negative Intensity</Label>
+              <div className="flex items-center gap-2">
+                <Label>Negative Intensity</Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">
+                        Controls the strength of negative prompts. Higher values (e.g. 1.3) tell the AI to avoid these concepts more aggressively.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <Slider
                 min={0.8}
                 max={1.4}
