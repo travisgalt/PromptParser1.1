@@ -39,6 +39,7 @@ export const PromptGenerator: React.FC = () => {
     }
   });
   const [lastSeed, setLastSeed] = React.useState<number | undefined>(undefined);
+  const [lastContext, setLastContext] = React.useState<{ medium?: any; scenario?: any } | undefined>(undefined);
   const [negPool, setNegPool] = React.useState<string[] | null>(null);
 
   React.useEffect(() => {
@@ -94,12 +95,18 @@ export const PromptGenerator: React.FC = () => {
     setPositive(result.positive);
     setNegative(result.negative);
     setLastSeed(newSeed);
+    setLastContext({ medium: controls.medium, scenario: result.selections.scenario });
     showSuccess("Prompt updated");
   }, [controls.includeNegative, controls.medium, controls.negativeIntensity, controls.safeMode, controls.seed, history, lastSeed, positive, negative]);
 
   // Shuffle Negative handler
   const onShuffleNegative = () => {
-    const nextNeg = generateNegativePrompt(controls.negativeIntensity, negPool || undefined);
+    const nextNeg = generateNegativePrompt(
+      controls.negativeIntensity, 
+      negPool || undefined, 
+      undefined, 
+      lastContext
+    );
     setNegative(nextNeg);
     showSuccess("Negative updated");
   };
@@ -118,6 +125,7 @@ export const PromptGenerator: React.FC = () => {
     setPositive(result.positive);
     setNegative(result.negative);
     setLastSeed(initialSeed);
+    setLastContext({ medium: controls.medium, scenario: result.selections.scenario });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

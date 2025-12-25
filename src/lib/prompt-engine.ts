@@ -198,7 +198,7 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   // Negative
   const negative =
     config.includeNegative
-      ? negativesBase.map((n) => `(${n}:${config.negativeIntensity.toFixed(2)})`).join(", ")
+      ? generateNegativePrompt(config.negativeIntensity, undefined, config.seed, { medium: config.medium, scenario })
       : undefined;
 
   return {
@@ -226,13 +226,37 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   };
 }
 
-export function generateNegativePrompt(intensity: number, poolOverride?: string[], seed?: number): string {
+export function generateNegativePrompt(
+  intensity: number,
+  poolOverride?: string[],
+  seed?: number,
+  context?: { medium?: Medium; scenario?: ScenarioKey }
+): string {
   const rng = mulberry32(seed ?? Math.floor(Math.random() * 1_000_000_000));
-  const core = ["low quality", "bad anatomy", "extra limbs", "jpeg artifacts"];
+  
+  // 1. Core quality fixes (Universal)
+  const core = ["low quality", "worst quality", "bad anatomy", "bad hands", "missing fingers", "extra digit", "jpeg artifacts", "signature", "watermark", "username", "blurry"];
+
+  // 2. Context-Specific Negatives
+  const contextual: string[] = [];
+
+  if (context?.medium === "photo") {
+    // If we want a photo, avoid artistic/render styles
+    contextual.push("3d render", "cartoon", "anime", "painting", "drawing", "illustration", "sketch");
+  } else if (context?.medium === "render") {
+    // If we want a render, avoid looking like a raw snapshot if that conflicts with the style (optional, but 'photo' can sometimes flatten stylized renders)
+    // contextual.push("photo", "photograph"); // This is debatable, sometimes renders want to look like photos. Leaving strictly safe for now.
+  }
+
+  // 3. Pick random "flavor" negatives from the pool
   const sourcePool = poolOverride && poolOverride.length ? poolOverride : negativesBase;
-  const pool = sourcePool.filter((n) => !core.includes(n));
-  const count = randomInt(rng, 6, 12);
+  // Filter out what we already have
+  const existingSet = new Set([...core, ...contextual]);
+  const pool = sourcePool.filter((n) => !existingSet.has(n));
+
+  const count = randomInt(rng, 5, 10);
   const picked = pickMany(rng, pool, count);
-  const all = [...core, ...picked];
+
+  const all = [...core, ...contextual, ...picked];
   return all.map((n) => `(${n}:${intensity.toFixed(2)})`).join(", ");
 }
