@@ -41,9 +41,11 @@ const HistorySidebar: React.FC = () => {
                       {new Date(item.timestamp).toLocaleString()}
                     </span>
                   </div>
-                  <div className="relative rounded bg-slate-900/60 border border-white/10 p-2 text-xs font-mono">
-                    {item.positive}
-                    <div className="absolute top-1 right-1">
+                  <div className="relative rounded bg-slate-900/60 border border-white/10 p-2">
+                    <p className="text-xs font-mono whitespace-pre-wrap break-words pr-10">
+                      {item.positive}
+                    </p>
+                    <div className="absolute top-2 right-2">
                       <Button
                         variant="ghost"
                         size="icon"
