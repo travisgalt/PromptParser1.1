@@ -8,12 +8,15 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { HelpCircle } from "lucide-react";
+import { Lock } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSession } from "@/components/auth/SessionProvider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { speciesList, stylesList, themesList } from "@/lib/prompt-data";
 import { models } from "@/lib/model-data";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import useSubscription from "@/hooks/useSubscription";
+import PricingModal from "@/components/PricingModal";
 
 export type ControlsState = {
   seed: number;
@@ -66,6 +69,9 @@ export const PromptControls: React.FC<Props> = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn]);
+
+  const { isPro, isLoading: subLoading } = useSubscription();
+  const [pricingOpen, setPricingOpen] = React.useState(false);
 
   return (
     <Card className="w-full bg-slate-900/50 backdrop-blur-md border border-white/10">
@@ -246,15 +252,27 @@ export const PromptControls: React.FC<Props> = ({
             Generate Prompt ✨
           </Button>
 
-          <Button
-            variant="ghost"
-            onClick={onGenerateImage}
-            disabled={generatingImage}
-            className="w-full hover:bg-white/10"
-          >
-            {generatingImage ? "Generating..." : "Generate Image (Local Forge)"}
-          </Button>
+          {isPro ? (
+            <Button
+              variant="ghost"
+              onClick={onGenerateImage}
+              disabled={generatingImage || subLoading}
+              className="w-full hover:bg-white/10"
+            >
+              {generatingImage ? "Generating..." : "Generate Image (Local Forge)"}
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              onClick={() => setPricingOpen(true)}
+              className="w-full hover:bg-white/10 text-muted-foreground"
+            >
+              <Lock className="mr-2 h-4 w-4" /> Generate Image (Pro Only)
+            </Button>
+          )}
         </div>
+
+        <PricingModal open={pricingOpen} onOpenChange={setPricingOpen} />
       </CardContent>
     </Card>
   );
