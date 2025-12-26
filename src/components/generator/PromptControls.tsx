@@ -113,21 +113,24 @@ export const PromptControls: React.FC<Props> = ({
             <Label className="text-base">Character Settings</Label>
 
             {/* Species checkboxes */}
-            <div className="flex flex-wrap items-center gap-4">
-              {speciesList.map((sp) => {
-                const checked = (state.selectedSpecies || []).includes(sp);
-                const id = `species-${sp}`;
-                return (
-                  <div key={sp} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={id}
-                      checked={checked}
-                      onCheckedChange={() => toggleSpecies(sp)}
-                    />
-                    <Label htmlFor={id} className="capitalize">{sp}</Label>
-                  </div>
-                );
-              })}
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {speciesList.map((sp) => {
+                  const checked = (state.selectedSpecies || []).includes(sp);
+                  const id = `species-${sp}`;
+                  return (
+                    <div key={sp} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={id}
+                        checked={checked}
+                        onCheckedChange={() => toggleSpecies(sp)}
+                        className="data-[state=checked]:bg-violet-600 data-[state=checked]:border-violet-600 focus-visible:ring-violet-600"
+                      />
+                      <Label htmlFor={id} className="capitalize">{sp}</Label>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Theme selector */}
@@ -136,7 +139,7 @@ export const PromptControls: React.FC<Props> = ({
               <RadioGroup
                 value={state.selectedTheme}
                 onValueChange={(v) => setField("selectedTheme", v as "any" | "fantasy" | "modern" | "scifi")}
-                className="flex gap-6"
+                className="flex flex-wrap gap-6"
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="any" id="theme-any" />
