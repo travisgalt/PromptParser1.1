@@ -14,6 +14,7 @@ import { stylesList, themesList, speciesList, hairColors, eyeColors } from "@/li
 import { models } from "@/lib/model-data";
 import { Checkbox } from "@/components/ui/checkbox";
 import { showSuccess, showError } from "@/utils/toast";
+import { Sparkles } from "lucide-react";
 
 // Simple Preferences editor for default settings
 export default function Profile() {
@@ -101,6 +102,20 @@ export default function Profile() {
             </div>
           ) : (
             <>
+              <div className="bg-white/5 border border-white/10 rounded-lg p-6 mb-8">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-600/15 border border-violet-600/30">
+                    <Sparkles className="h-5 w-5 text-violet-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-2">Design Your Starting Point</h3>
+                    <p className="text-slate-300 leading-relaxed">
+                      Tired of adjusting sliders every time you log in? Configure your perfect workspace below. We will automatically load these settings as your default 'Zero State' whenever you start a new session.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label>Model Checkpoint</Label>
                 <Select value={prefs.selectedModelId} onValueChange={(v) => setField("selectedModelId", v)}>
