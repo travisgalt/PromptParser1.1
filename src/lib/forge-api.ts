@@ -1,30 +1,44 @@
 export async function generateImage(
-  prompt: string,
-  negative_prompt: string,
+  positive: string,
+  negative: string,
   modelFilename: string,
   width: number,
-  height: number
-): Promise<string> {
-  const res = await fetch("http://127.0.0.1:7860/sdapi/v1/txt2img", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      prompt,
-      negative_prompt,
-      steps: 25,
-      cfg_scale: 7,
-      width,
-      height,
-      override_settings: {
-        sd_model_checkpoint: modelFilename,
-      },
-    }),
-  });
+  height: number,
+  useADetailer?: boolean
+): Promise<string | null> {
+  // Construct base payload
+  const payload: any = {
+    prompt: positive,
+    negative_prompt: negative,
+    width,
+    height,
+    model: modelFilename,
+  };
 
-  if (!res.ok) {
-    throw new Error(`Forge API error: ${res.status} ${res.statusText}`);
+  // ADDED: Include ADetailer block when enabled
+  if (useADetailer) {
+    payload.alwayson_scripts = {
+      ADetailer: {
+        args: [
+          true, // Enabled
+          false, // Skip img2img? (Keep false)
+          {
+            ad_model: "face_yolov8n.pt", // Standard face detection model
+            ad_confidence: 0.3,
+            ad_denoising_strength: 0.4,
+          },
+        ],
+      },
+    };
   }
 
-  const data = await res.json() as { images: string[] };
-  return Array.isArray(data.images) && data.images.length > 0 ? data.images[0] : "";
+  const resp = await fetch("/api/forge/txt2img", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!resp.ok) return null;
+  const data = await resp.json();
+  return data?.image ?? null;
 }

@@ -112,7 +112,8 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
       output.negative ?? "",
       model.filename,
       controls.width,
-      controls.height
+      controls.height,
+      controls.useADetailer
     );
     setGeneratedImage(imageData || null);
     setIsGeneratingImg(false);

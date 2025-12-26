@@ -29,9 +29,10 @@ export type ControlsState = {
   selectedModelId: string; // model checkpoint id
   width: number; // NEW
   height: number; // NEW
-  // ADDED
-  hairColor: string;
-  eyeColor: string;
+  hairColor: string; // already added earlier
+  eyeColor: string;  // already added earlier
+  // ADDED: ADetailer toggle
+  useADetailer: boolean;
 };
 
 type Props = {
@@ -247,6 +248,33 @@ export const PromptControls: React.FC<Props> = ({
               Filters sensitive accessories and tokens
             </span>
           </div>
+        </div>
+
+        {/* ADDED: ADetailer Toggle */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="adetailer">Fix Faces (ADetailer)</Label>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">
+                    Automatically detects and repairs faces using the YOLO model.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <Switch
+              id="adetailer"
+              checked={state.useADetailer}
+              onCheckedChange={(c) => setField("useADetailer", c)}
+            />
+          </div>
+          <span className="text-xs text-muted-foreground">
+            Improves face quality; safe to disable if not installed.
+          </span>
         </div>
 
         {/* Character Settings */}
