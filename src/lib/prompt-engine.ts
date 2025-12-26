@@ -136,6 +136,39 @@ function applyStyleTags(style: string): string[] {
   return [...universal, ...styleTags];
 }
 
+// Logic Sanitizer: prevent physical contradictions
+function sanitizePrompt(prompt: string, activeTags: string[]): string {
+  const hasElfTag = activeTags.some((t) => /(^|\s)(dark\s+elf|elf)(\s|$)/i.test(t));
+  const mentionsPointyEars = /pointy ears/i.test(prompt);
+  const mentionsHeadphones = /(headphones?|headset|cans)/i.test(prompt);
+
+  // Rules are composable for future constraints
+  const rules: Array<{ when: (p: string) => boolean; apply: (p: string) => string }> = [
+    {
+      // Elves (or prompts with pointy ears) cannot wear over-ear headphones; convert to in-ear
+      when: (p) => (hasElfTag || mentionsPointyEars) && mentionsHeadphones,
+      apply: (p) =>
+        p.replace(/headphones?|headset|cans/gi, () => {
+          // Use 'earbuds' as the default correction; you can swap to 'in-ear monitors' if preferred
+          return "earbuds";
+        }),
+    },
+    // Future rule template (example):
+    // {
+    //   when: (p) => activeTags.some(t => /mermaid/i.test(t)) && /sneakers/i.test(p),
+    //   apply: (p) => p.replace(/sneakers/gi, "bare feet"),
+    // },
+  ];
+
+  let sanitized = prompt;
+  for (const rule of rules) {
+    if (rule.when(sanitized)) {
+      sanitized = rule.apply(sanitized);
+    }
+  }
+  return sanitized;
+}
+
 function filterByTheme<T extends { themes: ThemeKey[] }>(items: T[], theme: ThemeKey): T[] {
   if (theme === "any") return items;
   return items.filter((i) => i.themes.includes("any") || i.themes.includes(theme));
@@ -285,11 +318,15 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   const scene = `${bg.label}, ${lighting}`;
 
   // Positive composition (prepend model trigger tags if present via quality variable)
-  const positive = `${quality}, ${identity}, ${fashion}, ${scene}, ${tech}`;
+  let positive = `${quality}, ${identity}, ${fashion}, ${scene}, ${tech}`;
+
+  // NEW: sanitize the final positive string based on active tags (e.g., species)
+  positive = sanitizePrompt(positive, [species]);
 
   // Negative
   let negative: string | undefined;
   if (config.includeNegative) {
+    const model = models.find((m) => m.id === config.selectedModelId);
     if (model?.id === "pony-v6" && model.negativeDefault) {
       negative = model.negativeDefault;
     } else {
