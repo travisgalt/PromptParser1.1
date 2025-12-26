@@ -71,37 +71,6 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
     loadBanStatus();
   }, [userId]);
 
-  const handleGenerate = React.useCallback(() => {
-    if (isBanned) {
-      showError("Your account is banned. Prompt generation is disabled.");
-      return;
-    }
-
-    // Step 1: Generate using the freshest controls
-    const result = generate(controls);
-
-    // Step 2: Build settings from current controls (style, theme, model, etc.)
-    const settings = {
-      seed: result.seed,
-      style: controls.selectedStyle,
-      theme: controls.selectedTheme,
-      model: controls.selectedModelId,
-      includeNegative: controls.includeNegative,
-      negativeIntensity: controls.negativeIntensity,
-      safeMode: controls.safeMode,
-    };
-
-    // Step 3: Save the new result via useHistory (handles DB or local)
-    saveItem({
-      positive: result.positive,
-      negative: result.negative,
-      seed: result.seed,
-      settings,
-    });
-
-    showSuccess("Prompt updated");
-  }, [isBanned, controls, generate, saveItem]);
-
   const handleGenerateImage = async () => {
     setIsGeneratingImg(true);
     const model = models.find((m) => m.id === controls.selectedModelId) ?? models[0];
@@ -112,6 +81,39 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
       showSuccess("Image generated");
     }
   };
+
+  // NEW: standardized generation-and-save function
+  const runGeneration = React.useCallback(() => {
+    if (isBanned) {
+      showError("Your account is banned. Prompt generation is disabled.");
+      return;
+    }
+
+    const result = generate(controls);
+
+    const settings = {
+      seed: result.seed,
+      style: controls.selectedStyle,
+      theme: controls.selectedTheme,
+      model: controls.selectedModelId,
+      includeNegative: controls.includeNegative,
+      negativeIntensity: controls.negativeIntensity,
+      safeMode: controls.safeMode,
+    };
+
+    saveItem({
+      positive: result.positive,
+      negative: result.negative,
+      seed: result.seed,
+      settings,
+    });
+
+    showSuccess("Prompt updated");
+  }, [isBanned, controls, generate, saveItem]);
+
+  const handleGenerate = React.useCallback(() => {
+    runGeneration();
+  }, [runGeneration]);
 
   const onShuffleNegative = () => {
     if (isBanned) {
@@ -145,7 +147,7 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
             positive={output.positive}
             negative={output.negative}
             seed={controls.seed}
-            onShuffle={handleGenerate}
+            onShuffle={runGeneration}
             onShare={onShare}
             onPositiveChange={output.setPositive}
             onClearPositive={output.clearPositive}
