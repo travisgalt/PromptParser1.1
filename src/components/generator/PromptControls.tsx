@@ -26,7 +26,9 @@ export type ControlsState = {
   selectedSpecies: string[];
   selectedTheme: "any" | "fantasy" | "modern" | "scifi" | "cyberpunk" | "steampunk" | "post_apocalyptic" | "horror_gothic" | "noir" | "school_life";
   selectedStyle: string;
-  selectedModelId: string; // NEW: model checkpoint id
+  selectedModelId: string; // model checkpoint id
+  width: number; // NEW
+  height: number; // NEW
 };
 
 type Props = {
@@ -85,16 +87,24 @@ export const PromptControls: React.FC<Props> = ({
     return stylesList;
   }, [selectedModel?.allowedStyles]);
 
-  // Auto-switch style to the model's defaultStyle when model changes
+  // Auto-switch style and dimensions when model changes
   React.useEffect(() => {
     if (!selectedModel) return;
     const nextStyle = selectedModel.defaultStyle;
-    // Snap to default immediately to prevent invalid states
     if (state.selectedStyle !== nextStyle) {
       setField("selectedStyle", nextStyle);
     }
+    if (selectedModel.defaultWidth && selectedModel.defaultHeight) {
+      if (state.width !== selectedModel.defaultWidth) setField("width", selectedModel.defaultWidth);
+      if (state.height !== selectedModel.defaultHeight) setField("height", selectedModel.defaultHeight);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.selectedModelId]);
+
+  // helpers to sync dimension inputs
+  const clampDim = (v: number) => Math.max(512, Math.min(2048, v));
+  const setWidth = (v: number) => setField("width", clampDim(v));
+  const setHeight = (v: number) => setField("height", clampDim(v));
 
   return (
     <Card className="w-full bg-slate-900/50 backdrop-blur-md border border-white/10">
@@ -120,6 +130,51 @@ export const PromptControls: React.FC<Props> = ({
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        {/* Dimensions */}
+        <div className="space-y-3">
+          <Label className="text-base">Dimensions</Label>
+          <div className="space-y-2">
+            <Label htmlFor="width">Width</Label>
+            <div className="flex items-center gap-3">
+              <Slider
+                min={512}
+                max={2048}
+                step={8}
+                value={[state.width]}
+                onValueChange={(arr) => setWidth(arr[0] ?? state.width)}
+                className="flex-1"
+              />
+              <Input
+                id="width"
+                type="number"
+                value={state.width}
+                onChange={(e) => setWidth(Number(e.target.value || state.width))}
+                className="w-24"
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="height">Height</Label>
+            <div className="flex items-center gap-3">
+              <Slider
+                min={512}
+                max={2048}
+                step={8}
+                value={[state.height]}
+                onValueChange={(arr) => setHeight(arr[0] ?? state.height)}
+                className="flex-1"
+              />
+              <Input
+                id="height"
+                type="number"
+                value={state.height}
+                onChange={(e) => setHeight(Number(e.target.value || state.height))}
+                className="w-24"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Top row: Style and Theme side-by-side */}

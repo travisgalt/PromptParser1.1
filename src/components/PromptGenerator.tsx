@@ -104,7 +104,13 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
   const handleGenerateImage = async () => {
     setIsGeneratingImg(true);
     const model = models.find((m) => m.id === controls.selectedModelId) ?? models[0];
-    const imageData = await generateImage(output.positive, output.negative ?? "", model.filename);
+    const imageData = await generateImage(
+      output.positive,
+      output.negative ?? "",
+      model.filename,
+      controls.width,
+      controls.height
+    );
     setGeneratedImage(imageData || null);
     setIsGeneratingImg(false);
     if (imageData) {

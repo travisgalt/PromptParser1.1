@@ -1,7 +1,9 @@
 export async function generateImage(
   prompt: string,
   negative_prompt: string,
-  modelFilename: string
+  modelFilename: string,
+  width: number,
+  height: number
 ): Promise<string> {
   const res = await fetch("http://127.0.0.1:7860/sdapi/v1/txt2img", {
     method: "POST",
@@ -11,8 +13,8 @@ export async function generateImage(
       negative_prompt,
       steps: 25,
       cfg_scale: 7,
-      width: 832,
-      height: 1216,
+      width,
+      height,
       override_settings: {
         sd_model_checkpoint: modelFilename,
       },

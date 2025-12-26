@@ -39,6 +39,8 @@ export function usePromptGenerator(opts?: { userId?: string }) {
       selectedTheme: "any",
       selectedStyle: "photorealistic",
       selectedModelId: "standard",
+      width: 1024, // NEW defaults for Standard
+      height: 1024,
     };
   }, []);
 
