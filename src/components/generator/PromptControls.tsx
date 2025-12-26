@@ -8,14 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { User, HelpCircle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { HelpCircle } from "lucide-react";
 import { useSession } from "@/components/auth/SessionProvider";
 
 export type ControlsState = {
@@ -42,7 +35,6 @@ export const PromptControls: React.FC<Props> = ({
   const setField = <K extends keyof ControlsState>(key: K, value: ControlsState[K]) => {
     onChange({ ...state, [key]: value });
   };
-  const navigate = useNavigate();
 
   // NEW: detect login status
   const { session } = useSession();
@@ -169,12 +161,6 @@ export const PromptControls: React.FC<Props> = ({
             className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-600/30 hover:shadow-indigo-600/40 hover:from-violet-500 hover:to-indigo-500"
           >
             Generate Prompt ✨
-          </Button>
-        </div>
-
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate("/profile")}>
-            <User className="mr-2 h-4 w-4" /> Profile
           </Button>
         </div>
       </CardContent>
