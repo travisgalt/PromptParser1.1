@@ -6,11 +6,23 @@ export type ScenarioKey =
   | "outdoor_public_night"
   | "studio";
 
+export type ThemeKey =
+  | "any"
+  | "modern"
+  | "fantasy"
+  | "scifi"
+  | "cyberpunk"
+  | "steampunk"
+  | "post_apocalyptic"
+  | "horror_gothic"
+  | "noir"
+  | "school_life";
+
 export type OutfitItem = {
   label: string;
   hasPockets: boolean;
   contextsAllowed: ScenarioKey[];
-  theme: "fantasy" | "modern" | "scifi" | "any";
+  themes: ThemeKey[]; // supports multiple themes
 };
 
 export type PoseItem = {
@@ -33,7 +45,7 @@ export type BackgroundItem = {
   label: string;
   environment: "indoor" | "outdoor" | "studio";
   timeOfDay?: "day" | "night";
-  theme: "fantasy" | "modern" | "scifi" | "any";
+  themes: ThemeKey[]; // supports multiple themes
 };
 
 export type ExtraWearItem = {
@@ -42,10 +54,48 @@ export type ExtraWearItem = {
   contextsAllowed: ScenarioKey[];
 };
 
+export const stylesList: string[] = [
+  "photorealistic",
+  "anime",
+  "3d_render",
+  "digital_painting",
+  "oil_painting",
+  "pixel_art",
+  "comic_book",
+  "line_art",
+];
+
+export const themesList: ThemeKey[] = [
+  "any",
+  "modern",
+  "fantasy",
+  "scifi",
+  "cyberpunk",
+  "steampunk",
+  "post_apocalyptic",
+  "horror_gothic",
+  "noir",
+  "school_life",
+];
+
+export const speciesList: string[] = [
+  "human",
+  "elf",
+  "dark elf",
+  "demon",
+  "angel",
+  "android",
+  "cyborg",
+  "vampire",
+  "kitsune",
+  "catgirl",
+  "orc",
+];
+
 export const qualityTags: string[] = [
-  "(masterpiece, best quality:1.2), aesthetic, 8k, raw photo",
+  "(masterpiece), (best quality), (highly detailed), 8k",
   "(absurdres, highres:1.2), super detailed, intricate details",
-  "score_9, score_8_up, source_anime, perfect anatomy, (sharp focus:1.1)",
+  "score_9, score_8_up, perfect anatomy, (sharp focus:1.1)",
 ];
 
 export const hairStyles: string[] = [
@@ -78,38 +128,26 @@ export const expressions: Record<string, string[]> = {
   moody: ["serious face", "melancholic", "cold gaze", "distant look", "parted lips"],
 };
 
-export const shotTypes: string[] = [
-  "close-up",
-  "portrait",
-  "upper body",
-  "cowboy shot",
-  "full body",
-  "wide shot",
-];
+export const shotTypes: string[] = ["close-up", "portrait", "upper body", "cowboy shot", "full body", "wide shot"];
 
-export const cameraAngles: string[] = [
-  "eye level",
-  "from below",
-  "from above",
-  "dutch angle",
-  "dynamic angle",
-];
+export const cameraAngles: string[] = ["eye level", "from below", "from above", "dutch angle", "dynamic angle"];
 
+// Outfits now support multiple themes
 export const outfits: OutfitItem[] = [
-  { label: "shiny latex bodysuit, high collar, chains", hasPockets: false, contextsAllowed: ["studio", "indoor_private"], theme: "modern" },
-  { label: "distressed black denim jacket, torn fishnet tights, band t-shirt", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"], theme: "modern" },
-  { label: "plaid punk skirt, safety pins, leather combat boots, studded belt", hasPockets: false, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"], theme: "modern" },
-  { label: "gothic lolita dress, velvet texture, white lace trim", hasPockets: false, contextsAllowed: ["studio", "indoor_private", "outdoor_public_night"], theme: "modern" },
-  { label: "mesh top, see-through, black bra, leather mini skirt", hasPockets: false, contextsAllowed: ["studio", "indoor_private"], theme: "modern" },
-  { label: "vinyl pants, reflective fabric, cropped hoodie", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"], theme: "modern" },
-  { label: "black satin slip dress, smooth texture, lace hem", hasPockets: false, contextsAllowed: ["studio", "indoor_private"], theme: "modern" },
-  { label: "white cotton oversized shirt, no pants, comfy", hasPockets: false, contextsAllowed: ["indoor_private"], theme: "modern" },
-  { label: "silk pajamas, glossy fabric", hasPockets: false, contextsAllowed: ["indoor_private"], theme: "modern" },
-  { label: "sports bra, yoga pants, spandex, athleisure", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"], theme: "modern" },
-  { label: "knitted off-shoulder sweater, soft texture, collarbone", hasPockets: false, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"], theme: "modern" },
-  { label: "tight denim jeans, stone wash, white tank top", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"], theme: "modern" },
-  { label: "sundress, floral pattern, light cotton fabric", hasPockets: false, contextsAllowed: ["outdoor_public_day", "indoor_private", "studio"], theme: "modern" },
-  { label: "leather biker jacket, hoodie underneath, leggings", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"], theme: "modern" },
+  { label: "plate armor", hasPockets: false, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "studio"], themes: ["fantasy"] },
+  { label: "hoodie and jeans", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"], themes: ["modern", "cyberpunk"] },
+  { label: "techwear jacket, straps and pockets", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "studio"], themes: ["cyberpunk", "scifi"] },
+  { label: "school uniform, blazer and pleated skirt", hasPockets: false, contextsAllowed: ["outdoor_public_day", "indoor_private", "studio"], themes: ["school_life"] },
+  { label: "suit and tie", hasPockets: true, contextsAllowed: ["indoor_private", "studio", "outdoor_public_night"], themes: ["modern", "noir"] },
+  { label: "victorian dress, lace corset", hasPockets: false, contextsAllowed: ["indoor_private", "studio"], themes: ["steampunk", "horror_gothic"] },
+  { label: "post-apocalyptic rags, utility belt", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "studio"], themes: ["post_apocalyptic"] },
+  { label: "spacesuit, hard-shell armor", hasPockets: false, contextsAllowed: ["studio"], themes: ["scifi"] },
+  { label: "gothic lolita dress, velvet texture, white lace trim", hasPockets: false, contextsAllowed: ["studio", "indoor_private", "outdoor_public_night"], themes: ["horror_gothic", "modern"] },
+  { label: "leather biker jacket, hoodie underneath, leggings", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"], themes: ["modern", "cyberpunk"] },
+  { label: "sundress, floral pattern, light cotton fabric", hasPockets: false, contextsAllowed: ["outdoor_public_day", "indoor_private", "studio"], themes: ["modern"] },
+  { label: "tight denim jeans, stone wash, white tank top", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"], themes: ["modern"] },
+  { label: "black satin slip dress, smooth texture, lace hem", hasPockets: false, contextsAllowed: ["studio", "indoor_private"], themes: ["modern"] },
+  { label: "vinyl pants, reflective fabric, cropped hoodie", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"], themes: ["modern", "cyberpunk"] },
 ];
 
 export const poses: PoseItem[] = [
@@ -150,26 +188,32 @@ export const footwearItems: ExtraWearItem[] = [
   { label: "stiletto heels", hasPockets: false, contextsAllowed: ["outdoor_public_night", "indoor_private", "studio"] },
 ];
 
+// Backgrounds now support multiple themes
 export const backgrounds: BackgroundItem[] = [
-  { label: "messy bedroom, unmade bed, indoors, clutter", environment: "indoor", theme: "modern" },
-  { label: "luxury hotel room, dim lighting", environment: "indoor", theme: "modern" },
-  { label: "minimalist living room, sofa", environment: "indoor", theme: "modern" },
-  { label: "neon lit city street, bokeh city lights, cyberpunk vibe", environment: "outdoor", timeOfDay: "night", theme: "scifi" },
-  { label: "dark alleyway, wet ground, reflections", environment: "outdoor", timeOfDay: "night", theme: "modern" },
-  { label: "rooftop at night, city skyline", environment: "outdoor", timeOfDay: "night", theme: "modern" },
-  { label: "coffee shop window, daylight, sunny", environment: "outdoor", timeOfDay: "day", theme: "modern" },
-  { label: "park bench, greenery, soft sunlight", environment: "outdoor", timeOfDay: "day", theme: "modern" },
-  { label: "busy street, crowd blur, daylight", environment: "outdoor", timeOfDay: "day", theme: "modern" },
-  { label: "simple background, white background, studio", environment: "studio", theme: "any" },
-  { label: "dark gradient background, abstract", environment: "studio", theme: "any" },
-  { label: "professional studio, rim lighting", environment: "studio", theme: "any" },
+  { label: "messy bedroom, unmade bed, indoors, clutter", environment: "indoor", themes: ["modern"] },
+  { label: "luxury hotel room, dim lighting", environment: "indoor", themes: ["modern"] },
+  { label: "minimalist living room, sofa", environment: "indoor", themes: ["modern"] },
+  { label: "neon lit city street, bokeh lights, rain", environment: "outdoor", timeOfDay: "night", themes: ["cyberpunk"] },
+  { label: "dark alleyway, wet ground, reflections", environment: "outdoor", timeOfDay: "night", themes: ["modern", "noir", "cyberpunk"] },
+  { label: "rooftop at night, city skyline, skyscrapers", environment: "outdoor", timeOfDay: "night", themes: ["modern", "noir"] },
+  { label: "coffee shop window, daylight, sunny", environment: "outdoor", timeOfDay: "day", themes: ["modern"] },
+  { label: "park bench, greenery, soft sunlight", environment: "outdoor", timeOfDay: "day", themes: ["modern"] },
+  { label: "busy street, crowd blur, daylight, skyscrapers", environment: "outdoor", timeOfDay: "day", themes: ["modern"] },
+  { label: "classroom, desks and chalkboard", environment: "indoor", themes: ["school_life"] },
+  { label: "gothic castle hall, candles", environment: "indoor", themes: ["horror_gothic", "fantasy"] },
+  { label: "victorian workshop, brass and gears", environment: "indoor", themes: ["steampunk"] },
+  { label: "wasteland ruins, broken buildings", environment: "outdoor", timeOfDay: "day", themes: ["post_apocalyptic"] },
+  { label: "space station corridor, metallic walls", environment: "indoor", themes: ["scifi"] },
+  { label: "simple background, white background, studio", environment: "studio", themes: ["any"] },
+  { label: "dark gradient background, abstract", environment: "studio", themes: ["any"] },
+  { label: "professional studio, rim lighting", environment: "studio", themes: ["any"] },
 ];
 
 export const lightingByContext: Record<string, string[]> = {
-  "indoor": ["soft indoor lighting", "dim moody lighting", "lamp light"],
+  indoor: ["soft indoor lighting", "dim moody lighting", "lamp light"],
   "outdoor-day": ["natural sunlight", "soft shadows", "warm daylight"],
   "outdoor-night": ["neon lighting, cyan and magenta", "cinematic street lighting", "dramatic shadows"],
-  "studio": ["studio lighting", "flash photography", "hard rim lighting"],
+  studio: ["studio lighting", "flash photography", "hard rim lighting"],
 };
 
 export const photoTech: string[] = [
@@ -186,7 +230,6 @@ export const renderTech: string[] = [
 ];
 
 export const negativesBase: string[] = [
-  // Core artifacts
   "low quality",
   "worst quality",
   "normal quality",
@@ -195,8 +238,6 @@ export const negativesBase: string[] = [
   "blurry",
   "noisy",
   "grainy",
-
-  // Anatomy and limbs
   "bad anatomy",
   "bad proportions",
   "malformed limbs",
@@ -208,23 +249,15 @@ export const negativesBase: string[] = [
   "fused fingers",
   "bad hands",
   "long neck",
-
-  // Composition issues
   "duplicate",
   "cropped",
   "tilted horizon",
-
-  // Exposure and color
   "overexposed",
   "underexposed",
   "oversaturated",
   "undersaturated",
-
-  // Text/watermarks
   "watermark",
   "signature",
   "text",
   "text artifacts",
 ];
-
-export const speciesList = ["human", "elf", "demon", "android"];

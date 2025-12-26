@@ -16,7 +16,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
-import { speciesList } from "@/lib/prompt-data";
+import { speciesList, stylesList, themesList } from "@/lib/prompt-data";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 export type ControlsState = {
   seed: number;
@@ -24,9 +25,9 @@ export type ControlsState = {
   negativeIntensity: number;
   medium: "photo" | "render";
   safeMode: boolean;
-  // NEW: category filters
   selectedSpecies: string[];
-  selectedTheme: "any" | "fantasy" | "modern" | "scifi";
+  selectedTheme: "any" | "fantasy" | "modern" | "scifi" | "cyberpunk" | "steampunk" | "post_apocalyptic" | "horror_gothic" | "noir" | "school_life";
+  selectedStyle: string; // e.g., 'photorealistic', 'anime', ...
 };
 
 type Props = {
@@ -108,16 +109,50 @@ export const PromptControls: React.FC<Props> = ({
             </RadioGroup>
           </div>
 
+          {/* Style Select */}
+          <div className="space-y-2">
+            <Label>Style</Label>
+            <Select value={state.selectedStyle} onValueChange={(v) => setField("selectedStyle", v)}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a Style" />
+              </SelectTrigger>
+              <SelectContent>
+                {stylesList.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s.replace("_", " ").replace("_", " ")}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Theme Select */}
+          <div className="space-y-2">
+            <Label>Theme</Label>
+            <Select value={state.selectedTheme} onValueChange={(v) => setField("selectedTheme", v as ControlsState["selectedTheme"])}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a Theme" />
+              </SelectTrigger>
+              <SelectContent>
+                {themesList.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t.replace("_", " ").replace("_", " ")}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Character Settings */}
-          <div className="space-y-3 md:col-span-2">
+          <div className="space-y-4 md:col-span-2">
             <Label className="text-base">Character Settings</Label>
 
-            {/* Species checkboxes */}
+            {/* Species grid */}
             <div className="space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {speciesList.map((sp) => {
                   const checked = (state.selectedSpecies || []).includes(sp);
-                  const id = `species-${sp}`;
+                  const id = `species-${sp.replace(/\s+/g, "-")}`;
                   return (
                     <div key={sp} className="flex items-center space-x-2">
                       <Checkbox
@@ -126,38 +161,13 @@ export const PromptControls: React.FC<Props> = ({
                         onCheckedChange={() => toggleSpecies(sp)}
                         className="data-[state=checked]:bg-violet-600 data-[state=checked]:border-violet-600 focus-visible:ring-violet-600"
                       />
-                      <Label htmlFor={id} className="capitalize">{sp}</Label>
+                      <Label htmlFor={id} className="capitalize">
+                        {sp}
+                      </Label>
                     </div>
                   );
                 })}
               </div>
-            </div>
-
-            {/* Theme selector */}
-            <div className="space-y-2">
-              <Label>Theme</Label>
-              <RadioGroup
-                value={state.selectedTheme}
-                onValueChange={(v) => setField("selectedTheme", v as "any" | "fantasy" | "modern" | "scifi")}
-                className="flex flex-wrap gap-6"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="any" id="theme-any" />
-                  <Label htmlFor="theme-any">Any</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="modern" id="theme-modern" />
-                  <Label htmlFor="theme-modern">Modern</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="fantasy" id="theme-fantasy" />
-                  <Label htmlFor="theme-fantasy">Fantasy</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="scifi" id="theme-scifi" />
-                  <Label htmlFor="theme-scifi">Sci‑Fi</Label>
-                </div>
-              </RadioGroup>
             </div>
           </div>
 
@@ -166,22 +176,14 @@ export const PromptControls: React.FC<Props> = ({
             <div className="flex items-center justify-between">
               <div className="flex flex-col">
                 <Label htmlFor="neg">Include Negative</Label>
-                <span className="text-xs text-muted-foreground">
-                  Curated negatives to reduce artifacts
-                </span>
+                <span className="text-xs text-muted-foreground">Curated negatives to reduce artifacts</span>
               </div>
-              <Switch
-                id="neg"
-                checked={state.includeNegative}
-                onCheckedChange={(c) => setField("includeNegative", c)}
-              />
+              <Switch id="neg" checked={state.includeNegative} onCheckedChange={(c) => setField("includeNegative", c)} />
             </div>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Label>Negative Intensity</Label>
-                {!isLoggedIn && (
-                  <span className="text-xs text-muted-foreground">Login to unlock</span>
-                )}
+                {!isLoggedIn && <span className="text-xs text-muted-foreground">Login to unlock</span>}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
@@ -203,9 +205,7 @@ export const PromptControls: React.FC<Props> = ({
                 }}
                 disabled={!isLoggedIn}
               />
-              <div className="text-xs text-muted-foreground">
-                {(isLoggedIn ? state.negativeIntensity : 1.0).toFixed(2)}
-              </div>
+              <div className="text-xs text-muted-foreground">{(isLoggedIn ? state.negativeIntensity : 1.0).toFixed(2)}</div>
             </div>
           </div>
 
@@ -213,15 +213,9 @@ export const PromptControls: React.FC<Props> = ({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="safe">Safe Mode</Label>
-              <Switch
-                id="safe"
-                checked={state.safeMode}
-                onCheckedChange={(c) => setField("safeMode", c)}
-              />
+              <Switch id="safe" checked={state.safeMode} onCheckedChange={(c) => setField("safeMode", c)} />
             </div>
-            <span className="text-xs text-muted-foreground">
-              Filters sensitive accessories and tokens
-            </span>
+            <span className="text-xs text-muted-foreground">Filters sensitive accessories and tokens</span>
           </div>
         </div>
 

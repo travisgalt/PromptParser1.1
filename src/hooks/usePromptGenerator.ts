@@ -38,13 +38,14 @@ export function usePromptGenerator(opts?: { userId?: string }) {
       undefined;
 
     return {
-      seed: parsed.seed ?? randomSeed(),
+      seed: parsed.seed ?? Math.floor(Math.random() * 1_000_000_000),
       includeNegative: parsed.includeNegative ?? true,
       negativeIntensity: parsed.negativeIntensity ?? 1.1,
       medium: (parsed.medium as "photo" | "render" | undefined) ?? prefMedium ?? "photo",
       safeMode: (typeof parsed.safeMode === "boolean" ? parsed.safeMode : (prefSafe ?? true)),
       selectedSpecies: ["human", "elf"],
       selectedTheme: "any",
+      selectedStyle: "photorealistic",
     };
   }, []);
 
@@ -64,6 +65,7 @@ export function usePromptGenerator(opts?: { userId?: string }) {
       safeMode: controls.safeMode,
       allowedSpecies: controls.selectedSpecies,
       theme: controls.selectedTheme,
+      style: controls.selectedStyle,
     };
     const result = generatePrompt(config);
     setPositive(result.positive);
@@ -87,6 +89,7 @@ export function usePromptGenerator(opts?: { userId?: string }) {
       safeMode: controls.safeMode,
       allowedSpecies: controls.selectedSpecies,
       theme: controls.selectedTheme,
+      style: controls.selectedStyle,
     };
     const result = generatePrompt(config);
 
