@@ -26,7 +26,7 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
   const { controls, setControls, output, generate, randomize } = usePromptGenerator({ userId });
 
   // History hook: handles persistence and loading based on auth state
-  const { saveItem, history, favoritesIndex, saveHistory } = useHistory(userId);
+  const { saveItem, history } = useHistory(userId);
 
   const [negPool, setNegPool] = React.useState<string[] | null>(null);
   const [isBanned, setIsBanned] = React.useState<boolean>(false);
@@ -77,45 +77,21 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
       return;
     }
 
-    if (output.positive.trim().length > 0) {
-      const prevItem = {
-        id: `${controls.seed}-${Date.now()}`,
-        positive: output.positive,
-        negative: output.negative,
-        seed: controls.seed,
-        timestamp: Date.now(),
-        favorite: favoritesIndex.has(favKey({ positive: output.positive, seed: controls.seed })),
-      };
-      const prevNext = [prevItem, ...history].slice(0, 40);
-      saveHistory(prevNext);
-
-      if (userId) {
-        const configJson = {
-          style: controls.selectedStyle,
-          includeNegative: controls.includeNegative,
-          negativeIntensity: controls.negativeIntensity,
-          safeMode: controls.safeMode,
-        };
-        supabase.from("prompt_history").insert({
-          user_id: userId,
-          positive_text: prevItem.positive,
-          negative_text: prevItem.negative ?? null,
-          seed: prevItem.seed,
-          config_json: configJson,
-        });
-      }
-    }
-
-    // UPDATED: pass current controls to generate() to avoid staleness
+    // Step 1: Generate using the freshest controls
     const result = generate(controls);
+
+    // Step 2: Build settings from current controls (style, theme, model, etc.)
     const settings = {
       seed: result.seed,
       style: controls.selectedStyle,
+      theme: controls.selectedTheme,
+      model: controls.selectedModelId,
       includeNegative: controls.includeNegative,
       negativeIntensity: controls.negativeIntensity,
       safeMode: controls.safeMode,
     };
 
+    // Step 3: Save the new result via useHistory (handles DB or local)
     saveItem({
       positive: result.positive,
       negative: result.negative,
@@ -124,7 +100,7 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
     });
 
     showSuccess("Prompt updated");
-  }, [isBanned, output.positive, output.negative, controls, favoritesIndex, history, saveHistory, userId, generate, saveItem]);
+  }, [isBanned, controls, generate, saveItem]);
 
   const handleGenerateImage = async () => {
     setIsGeneratingImg(true);
