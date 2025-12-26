@@ -26,6 +26,7 @@ import {
   type ThemeKey,
 } from "./prompt-data";
 import { models } from "./model-data";
+import { nsfwTokens, type NSFWToken } from "./prompt-data";
 
 export type GeneratorConfig = {
   seed: number;
@@ -156,6 +157,69 @@ function sanitizePrompt(prompt: string, activeTags: string[]): string {
     }
   }
   return sanitized;
+}
+
+// NSFW selection (Safe Mode OFF): one-per-group with simple conflict resolution
+function selectNSFWTokens(params: {
+  safeMode: boolean;
+  style: string;
+  theme: ThemeKey;
+  basePoseLabel: string;
+}): NSFWToken[] {
+  if (params.safeMode) return [];
+  const byCategory = {
+    intent: nsfwTokens.filter((t) => t.category === "intent"),
+    coverage: nsfwTokens.filter((t) => t.category === "coverage"),
+    pose: nsfwTokens.filter((t) => t.category === "pose"),
+    location: nsfwTokens.filter((t) => t.category === "location"),
+    lighting: nsfwTokens.filter((t) => t.category === "lighting"),
+  };
+
+  const chosen: NSFWToken[] = [];
+  // Pick one per group (simple pickOne)
+  const intent = byCategory.intent.length ? pickOne(mulberry32(randomInt(mulberry32(Date.now()), 1, 1e9)), byCategory.intent) : undefined;
+  if (intent) chosen.push(intent);
+
+  const coverage = byCategory.coverage.length ? pickOne(mulberry32(randomInt(mulberry32(Date.now() + 1), 1, 1e9)), byCategory.coverage) : undefined;
+  if (coverage) chosen.push(coverage);
+
+  const location = byCategory.location.length ? pickOne(mulberry32(randomInt(mulberry32(Date.now() + 2), 1, 1e9)), byCategory.location) : undefined;
+  if (location) chosen.push(location);
+
+  const lighting = byCategory.lighting.length ? pickOne(mulberry32(randomInt(mulberry32(Date.now() + 3), 1, 1e9)), byCategory.lighting) : undefined;
+  if (lighting) chosen.push(lighting);
+
+  // Pose: avoid contradictions with the base pose (no sitting while walking, etc.)
+  const basePose = (params.basePoseLabel || "").toLowerCase();
+  let nsfwPose = byCategory.pose.length ? pickOne(mulberry32(randomInt(mulberry32(Date.now() + 4), 1, 1e9)), byCategory.pose) : undefined;
+  if (nsfwPose) {
+    const lp = nsfwPose.label.toLowerCase();
+    const conflicting = lp !== "" && (
+      (lp.includes("sitting") && basePose.includes("walking")) ||
+      (lp.includes("walking") && basePose.includes("sitting")) ||
+      (lp.includes("lying") && basePose.includes("standing")) ||
+      (lp.includes("kneeling") && basePose.includes("walking"))
+    );
+    if (!conflicting) {
+      // Prefer base pose: if nsfw pose differs, we drop it to avoid double-pose
+      // (You can enable overlay by replacing this with chosen.push(nsfwPose) if desired.)
+    } else {
+      nsfwPose = undefined;
+    }
+  }
+
+  // Coverage coherence: ensure only one coverage by removing conflicts
+  const coveragePriority = ["lingerie", "revealing outfit", "modest wear", "fully clothed"];
+  const coverageLabels = chosen.filter((t) => t.category === "coverage").map((t) => t.label);
+  if (coverageLabels.length > 1) {
+    const best = coveragePriority.find((label) => coverageLabels.includes(label));
+    const pruned = chosen.filter(
+      (t) => t.category !== "coverage" || t.label === best
+    );
+    return pruned;
+  }
+
+  return chosen;
 }
 
 // Species conflict resolution and hybrid handling
@@ -292,7 +356,6 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
       speciesTags = "wings, halo";
       break;
     case "android":
-      // handled as modifier below
       speciesTags = "";
       break;
     case "orc":
@@ -317,7 +380,6 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
     } else if (baseSpecies === "orc") {
       speciesTags = speciesTags ? `${speciesTags}, cyber-orc, metal plating` : "cyber-orc, metal plating";
     } else {
-      // Human or other bases
       speciesTags = speciesTags
         ? `${speciesTags}, android, artificial skin, mechanical parts, gynoid`
         : "android, artificial skin, mechanical parts, gynoid";
@@ -326,18 +388,33 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
 
   const identity = `1girl, solo${speciesTags ? ", " + speciesTags : ""}, ${body}, ${hair}, ${eyes}, ${expression}, ${pose.label}`;
 
+  // NSFW tokens if Safe Mode is OFF
+  const selectedNSFW = selectNSFWTokens({
+    safeMode: config.safeMode,
+    style,
+    theme,
+    basePoseLabel: pose.label || "",
+  });
+
   // Fashion composition
   const fashionParts: string[] = [outfit.label];
   if (layeredOuterwear) fashionParts.push(layeredOuterwear);
   if (layeredFootwear) fashionParts.push(layeredFootwear);
   if (acc.length) fashionParts.push(...acc.map((a) => a.label));
+  // coverage tokens integrate with fashion
+  selectedNSFW
+    .filter((t) => t.category === "coverage")
+    .forEach((t) => fashionParts.push(t.label));
   const fashion = fashionParts.join(", ");
 
-  // Scene
-  const scene = `${bg.label}, ${lighting}`;
+  // Scene (append optional nsfw location/lighting descriptors)
+  const nsfwLocation = selectedNSFW.find((t) => t.category === "location")?.label;
+  const nsfwLight = selectedNSFW.find((t) => t.category === "lighting")?.label;
+  const scene = `${bg.label}${nsfwLocation ? ", " + nsfwLocation : ""}, ${lighting}${nsfwLight ? ", " + nsfwLight : ""}`;
 
   // Compose positive and sanitize with active tags (base + modifiers)
-  let positive = `${quality}, ${identity}, ${fashion}, ${scene}, ${tech}`;
+  const nsfwIntent = selectedNSFW.find((t) => t.category === "intent")?.label;
+  let positive = `${nsfwIntent ? nsfwIntent + ", " : ""}${quality}, ${identity}, ${fashion}, ${scene}, ${tech}`;
   positive = sanitizePrompt(positive, [baseSpecies, ...modifiers]);
 
   // Negative

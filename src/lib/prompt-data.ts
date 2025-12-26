@@ -54,6 +54,64 @@ export type ExtraWearItem = {
   contextsAllowed: ScenarioKey[];
 };
 
+export type NSFWToken = {
+  label: string;
+  category: "intent" | "coverage" | "pose" | "location" | "lighting";
+  intensity: "light" | "medium" | "strong";
+  nsfw: true;
+  group?: "intent" | "coverage" | "pose" | "location" | "lighting";
+  conflictsWith?: string[]; // token labels that should not co-exist
+  requiresOneOf?: string[]; // token labels/groups needed to make sense
+  allowedStyles?: string[]; // optional style constraints
+  disallowedStyles?: string[]; // optional style constraints
+};
+
+export const nsfwTokens: NSFWToken[] = [
+  // Rating / Intent (guide model toward mature aesthetics without explicitness)
+  { label: "sensual", category: "intent", intensity: "light", nsfw: true, group: "intent" },
+  { label: "suggestive", category: "intent", intensity: "light", nsfw: true, group: "intent" },
+  { label: "boudoir", category: "intent", intensity: "medium", nsfw: true, group: "intent" },
+  { label: "risqué", category: "intent", intensity: "medium", nsfw: true, group: "intent" },
+  { label: "provocative", category: "intent", intensity: "medium", nsfw: true, group: "intent" },
+  { label: "mature", category: "intent", intensity: "medium", nsfw: true, group: "intent" },
+  { label: "adult", category: "intent", intensity: "strong", nsfw: true, group: "intent" },
+  { label: "18+", category: "intent", intensity: "strong", nsfw: true, group: "intent" },
+  { label: "uncensored", category: "intent", intensity: "strong", nsfw: true, group: "intent" },
+
+  // Wardrobe / Coverage (one per coverage group; conflicts defined)
+  { label: "fully clothed", category: "coverage", intensity: "light", nsfw: true, group: "coverage", conflictsWith: ["lingerie", "bikini", "revealing outfit"] },
+  { label: "modest wear", category: "coverage", intensity: "light", nsfw: true, group: "coverage", conflictsWith: ["lingerie", "bikini", "revealing outfit"] },
+  { label: "revealing outfit", category: "coverage", intensity: "medium", nsfw: true, group: "coverage", conflictsWith: ["fully clothed", "modest wear"] },
+  { label: "lingerie", category: "coverage", intensity: "strong", nsfw: true, group: "coverage", conflictsWith: ["fully clothed", "modest wear"] },
+  { label: "bikini", category: "coverage", intensity: "strong", nsfw: true, group: "coverage", conflictsWith: ["fully clothed", "modest wear"] },
+  { label: "sheer fabric", category: "coverage", intensity: "medium", nsfw: true, group: "coverage" },
+  { label: "lace lingerie", category: "coverage", intensity: "strong", nsfw: true, group: "coverage" },
+  { label: "stockings", category: "coverage", intensity: "medium", nsfw: true, group: "coverage" },
+  { label: "garter belt", category: "coverage", intensity: "medium", nsfw: true, group: "coverage" },
+  { label: "silk robe", category: "coverage", intensity: "light", nsfw: true, group: "coverage" },
+  { label: "negligee", category: "coverage", intensity: "medium", nsfw: true, group: "coverage" },
+
+  // Pose (one per pose group; enforce no sitting while walking)
+  { label: "standing", category: "pose", intensity: "light", nsfw: true, group: "pose", conflictsWith: ["sitting", "walking", "lying", "kneeling"] },
+  { label: "sitting", category: "pose", intensity: "light", nsfw: true, group: "pose", conflictsWith: ["standing", "walking", "lying", "kneeling"] },
+  { label: "walking", category: "pose", intensity: "light", nsfw: true, group: "pose", conflictsWith: ["standing", "sitting", "lying", "kneeling"] },
+  { label: "lying", category: "pose", intensity: "light", nsfw: true, group: "pose", conflictsWith: ["standing", "sitting", "walking", "kneeling"] },
+  { label: "kneeling", category: "pose", intensity: "light", nsfw: true, group: "pose", conflictsWith: ["standing", "sitting", "walking", "lying"] },
+  { label: "pin-up pose", category: "pose", intensity: "medium", nsfw: true, group: "pose" },
+
+  // Location / Scene (one per location group; adjust for coverage)
+  { label: "bedroom", category: "location", intensity: "medium", nsfw: true, group: "location" },
+  { label: "boudoir", category: "location", intensity: "medium", nsfw: true, group: "location" },
+  { label: "silk sheets", category: "location", intensity: "medium", nsfw: true, group: "location" },
+  { label: "intimate setting", category: "location", intensity: "light", nsfw: true, group: "location" },
+
+  // Lighting (one per lighting group)
+  { label: "soft lighting", category: "lighting", intensity: "light", nsfw: true, group: "lighting" },
+  { label: "warm rim light", category: "lighting", intensity: "light", nsfw: true, group: "lighting" },
+  { label: "candlelight", category: "lighting", intensity: "medium", nsfw: true, group: "lighting" },
+  { label: "soft focus", category: "lighting", intensity: "light", nsfw: true, group: "lighting" },
+];
+
 export const stylesList: string[] = [
   "photorealistic",
   "anime",
