@@ -90,7 +90,6 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
         return;
       }
 
-      // Use override controls or current state
       const cfg = overrideControls ?? controls;
 
       // 1) Generate text/seed from the provided config
@@ -99,12 +98,23 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
       // 2) Clear any old images in the result zone
       setGeneratedImage(null);
 
-      // 3) Save to history (DB/local) with the full config as settings
+      // 3) Save to history (DB/local) with the fresh seed in settings
+      const settings = {
+        seed: result.seed,
+        style: cfg.selectedStyle,
+        theme: cfg.selectedTheme,
+        model: cfg.selectedModelId,
+        includeNegative: cfg.includeNegative,
+        negativeIntensity: cfg.negativeIntensity,
+        safeMode: cfg.safeMode,
+        selectedSpecies: cfg.selectedSpecies,
+      };
+
       await saveItem({
         positive: result.positive,
         negative: result.negative,
         seed: result.seed,
-        settings: cfg,
+        settings,
       });
 
       showSuccess("Prompt updated");
