@@ -147,7 +147,6 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
         negativeIntensity: cfg.negativeIntensity,
         safeMode: cfg.safeMode,
         selectedSpecies: cfg.selectedSpecies,
-        // ADDED
         hairColor: cfg.hairColor,
         eyeColor: cfg.eyeColor,
       };

@@ -1,154 +1,233 @@
 "use client";
 
 import * as React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useSession } from "@/components/auth/SessionProvider";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { showSuccess } from "@/utils/toast";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useSession } from "@/components/auth/SessionProvider";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { stylesList, themesList, speciesList, hairColors, eyeColors } from "@/lib/prompt-data";
+import { models } from "@/lib/model-data";
+import { Checkbox } from "@/components/ui/checkbox";
+import { showSuccess, showError } from "@/utils/toast";
 
-type ProfileData = {
-  displayName: string;
-  avatarUrl: string;
-  bio: string;
-  themePreference?: "system" | "light" | "dark";
-};
-
-const STORAGE_KEY = "app:userProfile";
-
-function loadLocalProfile(): ProfileData {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw) return JSON.parse(raw) as ProfileData;
-  return {
-    displayName: "",
-    avatarUrl: "",
-    bio: "",
-  };
-}
-
+// Simple Preferences editor for default settings
 export default function Profile() {
-  const navigate = useNavigate();
   const { session } = useSession();
-  const [profile, setProfile] = React.useState<ProfileData>(loadLocalProfile());
   const userId = session?.user?.id;
+
+  const [prefs, setPrefs] = React.useState({
+    selectedModelId: "standard",
+    width: 1024,
+    height: 1024,
+    selectedStyle: "photorealistic",
+    selectedTheme: "any",
+    safeMode: true,
+    selectedSpecies: ["human"] as string[],
+    hairColor: "Random",
+    eyeColor: "Random",
+  });
+
+  const setField = (key: keyof typeof prefs, value: any) => {
+    setPrefs((p) => ({ ...p, [key]: value }));
+  };
+
+  const toggleSpecies = (name: string) => {
+    setPrefs((p) => {
+      const next = new Set(p.selectedSpecies);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return { ...p, selectedSpecies: Array.from(next) };
+    });
+  };
 
   React.useEffect(() => {
     if (!userId) return;
-    // Load profile from Supabase
     supabase
       .from("profiles")
-      .select("display_name, avatar_url, bio, theme_preference")
+      .select("default_settings")
       .eq("id", userId)
       .single()
       .then(({ data, error }) => {
-        if (error) {
-          throw error;
-        }
-        if (data) {
-          const next: ProfileData = {
-            displayName: data.display_name ?? "",
-            avatarUrl: data.avatar_url ?? "",
-            bio: data.bio ?? "",
-            themePreference: (data.theme_preference as "system" | "light" | "dark") ?? "system",
-          };
-          setProfile(next);
+        if (error) return;
+        const d = data?.default_settings;
+        if (d) {
+          setPrefs((p) => ({
+            ...p,
+            selectedModelId: d.selectedModelId ?? p.selectedModelId,
+            width: d.width ?? p.width,
+            height: d.height ?? p.height,
+            selectedStyle: d.selectedStyle ?? p.selectedStyle,
+            selectedTheme: d.selectedTheme ?? p.selectedTheme,
+            safeMode: typeof d.safeMode === "boolean" ? d.safeMode : p.safeMode,
+            selectedSpecies: Array.isArray(d.selectedSpecies) ? d.selectedSpecies : p.selectedSpecies,
+            hairColor: d.hairColor ?? p.hairColor,
+            eyeColor: d.eyeColor ?? p.eyeColor,
+          }));
         }
       });
   }, [userId]);
 
-  const save = () => {
-    if (userId) {
-      // Save to Supabase
-      const payload = {
-        id: userId,
-        display_name: profile.displayName || null,
-        avatar_url: profile.avatarUrl || null,
-        bio: profile.bio || null,
-        theme_preference: profile.themePreference ?? "system",
-        updated_at: new Date().toISOString(),
-      };
-      supabase.from("profiles").upsert(payload).then(({ error }) => {
-        if (error) throw error;
-        showSuccess("Profile saved to cloud");
-      });
-    } else {
-      // Fallback: local storage
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
-      showSuccess("Profile saved locally");
+  const onSave = async () => {
+    if (!userId) {
+      showError("Please log in to save preferences.");
+      return;
     }
+    const { error } = await supabase
+      .from("profiles")
+      .update({ default_settings: prefs })
+      .eq("id", userId);
+    if (error) {
+      showError("Failed to save preferences.");
+      return;
+    }
+    showSuccess("Default settings saved.");
   };
-
-  const isAuthed = !!userId;
 
   return (
     <div className="container mx-auto px-4 py-6">
-      <Card className="max-w-2xl mx-auto">
-        <CardHeader className="flex-row items-center justify-between">
-          <CardTitle className="text-xl">Your Profile</CardTitle>
-          <div className="flex gap-2">
-            {!isAuthed ? (
-              <Button variant="outline" onClick={() => navigate("/login")}>Login</Button>
-            ) : null}
-            <Button variant="secondary" onClick={() => navigate("/")}>Back</Button>
-          </div>
+      <Card className="bg-slate-900/50 backdrop-blur-md border border-white/10">
+        <CardHeader>
+          <CardTitle className="text-xl">Profile Defaults</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex items-center gap-4">
-            <Avatar className="h-16 w-16">
-              {profile.avatarUrl ? (
-                <AvatarImage src={profile.avatarUrl} alt={profile.displayName || "Avatar"} />
-              ) : null}
-              <AvatarFallback>{(profile.displayName || "U").slice(0, 2).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="displayName">Display Name</Label>
-                <Input
-                  id="displayName"
-                  value={profile.displayName}
-                  onChange={(e) => setProfile({ ...profile, displayName: e.target.value })}
-                  placeholder="Your name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="avatarUrl">Avatar URL</Label>
-                <Input
-                  id="avatarUrl"
-                  value={profile.avatarUrl}
-                  onChange={(e) => setProfile({ ...profile, avatarUrl: e.target.value })}
-                  placeholder="https://..."
-                />
-              </div>
+          {!userId ? (
+            <div className="text-sm text-muted-foreground">
+              Please log in to manage your default settings.
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <Label>Model Checkpoint</Label>
+                <Select value={prefs.selectedModelId} onValueChange={(v) => setField("selectedModelId", v)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a Model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {models.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="bio">Bio</Label>
-            <Textarea
-              id="bio"
-              value={profile.bio}
-              onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-              placeholder="Tell us a bit about you"
-              className="min-h-[120px]"
-            />
-          </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="width">Width</Label>
+                  <div className="flex items-center gap-3">
+                    <Slider min={512} max={2048} step={8} value={[prefs.width]} onValueChange={(arr) => setField("width", arr[0] ?? prefs.width)} className="flex-1" />
+                    <Input id="width" type="number" value={prefs.width} onChange={(e) => setField("width", Number(e.target.value || prefs.width))} className="w-24" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="height">Height</Label>
+                  <div className="flex items-center gap-3">
+                    <Slider min={512} max={2048} step={8} value={[prefs.height]} onValueChange={(arr) => setField("height", arr[0] ?? prefs.height)} className="flex-1" />
+                    <Input id="height" type="number" value={prefs.height} onChange={(e) => setField("height", Number(e.target.value || prefs.height))} className="w-24" />
+                  </div>
+                </div>
+              </div>
 
-          <div className="flex gap-2">
-            <Button onClick={save}>Save</Button>
-            <Button variant="outline" onClick={() => setProfile(loadLocalProfile())}>
-              Reset (Local)
-            </Button>
-          </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Style</Label>
+                  <Select value={prefs.selectedStyle} onValueChange={(v) => setField("selectedStyle", v)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select Style" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {stylesList.map((s) => (
+                        <SelectItem key={s} value={s}>{s.replace(/_/g, " ")}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Theme</Label>
+                  <Select value={prefs.selectedTheme} onValueChange={(v) => setField("selectedTheme", v)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select Theme" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {themesList.map((t) => (
+                        <SelectItem key={t} value={t}>{t.replace(/_/g, " ")}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
-          {!isAuthed && (
-            <p className="text-xs text-muted-foreground">
-              Not logged in—changes are saved in your browser only. Login to sync to the cloud.
-            </p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Safe Mode</Label>
+                  <Switch checked={prefs.safeMode} onCheckedChange={(c) => setField("safeMode", c)} />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <Label className="text-base">Character Settings</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {speciesList.map((sp) => {
+                    const id = `species-${sp.replace(/\s+/g, "-")}`;
+                    const checked = prefs.selectedSpecies.includes(sp);
+                    return (
+                      <div key={sp} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={id}
+                          checked={checked}
+                          onCheckedChange={() => toggleSpecies(sp)}
+                          className="data-[state=checked]:bg-violet-600 data-[state=checked]:border-violet-600 focus-visible:ring-violet-600"
+                        />
+                        <Label htmlFor={id} className="capitalize">{sp}</Label>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <Label className="text-base">Appearance</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Hair Color</Label>
+                    <Select value={prefs.hairColor} onValueChange={(v) => setField("hairColor", v)}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select Hair Color" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {hairColors.map((c) => (
+                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Eye Color</Label>
+                    <Select value={prefs.eyeColor} onValueChange={(v) => setField("eyeColor", v)}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select Eye Color" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {eyeColors.map((c) => (
+                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  These defaults will be applied automatically when you log in.
+                </p>
+              </div>
+
+              <Button className="w-full bg-violet-600 text-white" onClick={onSave}>
+                Save Defaults
+              </Button>
+            </>
           )}
         </CardContent>
       </Card>

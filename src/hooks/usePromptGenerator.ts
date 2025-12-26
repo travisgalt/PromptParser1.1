@@ -4,6 +4,7 @@ import * as React from "react";
 import { generatePrompt, type GeneratorConfig } from "@/lib/prompt-engine";
 import { parseControlsFromQuery } from "@/lib/url-state";
 import type { ControlsState } from "@/components/generator/PromptControls";
+import { supabase } from "@/integrations/supabase/client";
 
 function randomSeed() {
   return Math.floor(Math.random() * 1_000_000_000);
@@ -52,6 +53,45 @@ export function usePromptGenerator(opts?: { userId?: string }) {
   const [negative, setNegative] = React.useState<string | undefined>(undefined);
   const [lastSeed, setLastSeed] = React.useState<number>(initialControls.seed);
   const [lastContext, setLastContext] = React.useState<{ medium?: any; scenario?: any } | undefined>(undefined);
+
+  // NEW: When user logs in, load profile defaults and set human-only if none found
+  React.useEffect(() => {
+    const userId = opts?.userId;
+    if (!userId) return;
+
+    (async () => {
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("default_settings")
+        .eq("id", userId)
+        .single();
+
+      const defaults = prof?.default_settings as Partial<ControlsState> | undefined;
+
+      setControls((c) => {
+        // Start with human-only by default on login
+        let next: ControlsState = { ...c, selectedSpecies: ["human"] };
+
+        // Apply saved defaults if present
+        if (defaults) {
+          next = {
+            ...next,
+            selectedModelId: defaults.selectedModelId ?? next.selectedModelId,
+            width: defaults.width ?? next.width,
+            height: defaults.height ?? next.height,
+            selectedStyle: defaults.selectedStyle ?? next.selectedStyle,
+            selectedTheme: (defaults.selectedTheme as ControlsState["selectedTheme"]) ?? next.selectedTheme,
+            safeMode: defaults.safeMode ?? next.safeMode,
+            selectedSpecies: Array.isArray(defaults.selectedSpecies) ? defaults.selectedSpecies as string[] : next.selectedSpecies,
+            hairColor: defaults.hairColor ?? next.hairColor,
+            eyeColor: defaults.eyeColor ?? next.eyeColor,
+          };
+        }
+
+        return next;
+      });
+    })();
+  }, [opts?.userId]);
 
   // Generate initial output once on mount based on initial controls
   React.useEffect(() => {
