@@ -210,6 +210,24 @@ export const PromptGenerator: React.FC = () => {
     setNegative(result.negative);
     setLastSeed(newSeed);
     setLastContext({ medium: controls.medium, scenario: result.selections.scenario });
+
+    // NEW: Save generated prompt to Supabase when logged in
+    if (userId) {
+      const settings = {
+        seed: newSeed,
+        medium: controls.medium,
+        includeNegative: controls.includeNegative,
+        negativeIntensity: controls.negativeIntensity,
+        safeMode: controls.safeMode,
+      };
+      supabase.from("generated_prompts").insert({
+        user_id: userId,
+        positive_prompt: result.positive,
+        negative_prompt: result.negative ?? null,
+        settings,
+      });
+    }
+
     showSuccess("Prompt updated");
   }, [controls.includeNegative, controls.medium, controls.negativeIntensity, controls.safeMode, history, lastSeed, positive, negative, userId, isBanned, favoritesIndex]);
 
