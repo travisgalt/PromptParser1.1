@@ -82,35 +82,45 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
     }
   };
 
-  // NEW: standardized async generation-and-save function
-  const runGeneration = React.useCallback(async (config: any) => {
-    if (isBanned) {
-      showError("Your account is banned. Prompt generation is disabled.");
-      return;
-    }
-    // 1) Generate text/seed from the provided config (fresh controls)
-    const result = generate(config);
-    // 2) Clear any old images in the result zone
-    setGeneratedImage(null);
-    // 3) Save to history (DB/local) with the full config as settings
-    await saveItem({
-      positive: result.positive,
-      negative: result.negative,
-      seed: result.seed,
-      settings: config,
-    });
-    showSuccess("Prompt updated");
-  }, [isBanned, generate, saveItem]);
+  // NEW: Unified generation handler that also saves history
+  const runGeneration = React.useCallback(
+    async (overrideControls?: any) => {
+      if (isBanned) {
+        showError("Your account is banned. Prompt generation is disabled.");
+        return;
+      }
 
-  const handleGenerate = React.useCallback(() => {
-    // Always use the latest controls
-    runGeneration(controls);
-  }, [controls, runGeneration]);
+      // Use override controls or current state
+      const cfg = overrideControls ?? controls;
 
-  const handleShuffle = React.useCallback(() => {
-    // Shuffle uses the same generate-and-save flow
-    runGeneration(controls);
-  }, [controls, runGeneration]);
+      // 1) Generate text/seed from the provided config
+      const result = generate(cfg);
+
+      // 2) Clear any old images in the result zone
+      setGeneratedImage(null);
+
+      // 3) Save to history (DB/local) with the full config as settings
+      await saveItem({
+        positive: result.positive,
+        negative: result.negative,
+        seed: result.seed,
+        settings: cfg,
+      });
+
+      showSuccess("Prompt updated");
+    },
+    [isBanned, controls, generate, saveItem, setGeneratedImage]
+  );
+
+  // Generate Prompt button uses the unified flow
+  const handleGenerate = React.useCallback(async () => {
+    await runGeneration(controls);
+  }, [runGeneration, controls]);
+
+  // Shuffle in the prompt box also uses the same unified flow
+  const handleShuffle = React.useCallback(async () => {
+    await runGeneration(controls);
+  }, [runGeneration, controls]);
 
   const onShuffleNegative = () => {
     if (isBanned) {
