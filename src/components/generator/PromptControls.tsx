@@ -252,27 +252,17 @@ export const PromptControls: React.FC<Props> = ({
             Generate Prompt ✨
           </Button>
 
-          {isPro ? (
+          {isPro && (
             <Button
-              variant="ghost"
               onClick={onGenerateImage}
               disabled={generatingImage || subLoading}
-              className="w-full hover:bg-white/10"
+              className="w-full text-white bg-gradient-to-r from-violet-600 to-indigo-600 border border-white/10 shadow-[0_0_18px_rgba(139,92,246,0.25),0_0_10px_rgba(234,179,8,0.15)] hover:from-violet-500 hover:to-indigo-500 hover:shadow-[0_0_24px_rgba(139,92,246,0.35),0_0_12px_rgba(234,179,8,0.22)]"
             >
               {generatingImage ? "Generating..." : "Generate Image (Local Forge)"}
             </Button>
-          ) : (
-            <Button
-              variant="ghost"
-              onClick={() => setPricingOpen(true)}
-              className="w-full hover:bg-white/10 text-muted-foreground"
-            >
-              <Lock className="mr-2 h-4 w-4" /> Generate Image (Pro Only)
-            </Button>
           )}
+          {!isPro && <PricingModal open={pricingOpen} onOpenChange={setPricingOpen} />}
         </div>
-
-        <PricingModal open={pricingOpen} onOpenChange={setPricingOpen} />
       </CardContent>
     </Card>
   );

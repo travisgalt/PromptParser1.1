@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { showSuccess } from "@/utils/toast";
 import { Copy, Shuffle, Trash2 } from "lucide-react";
+import useSubscription from "@/hooks/useSubscription";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
@@ -40,6 +41,8 @@ export const PromptDisplay: React.FC<Props> = ({
     navigator.clipboard.writeText(text);
     showSuccess(`${label} copied`);
   };
+
+  const { isPro } = useSubscription();
 
   return (
     <Card className="w-full bg-slate-900/50 backdrop-blur-md border border-white/10">
@@ -101,17 +104,27 @@ export const PromptDisplay: React.FC<Props> = ({
             >
               <Shuffle className="mr-2 h-4 w-4" /> Shuffle
             </Button>
-            {onShare ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="hover:bg-white/10"
-                onClick={onShare}
-              >
-                Share
-              </Button>
+            {isPro ? (
+              onShare ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="hover:bg-white/10"
+                  onClick={onShare}
+                >
+                  Share
+                </Button>
+              ) : (
+                <div />
+              )
             ) : (
-              <div />
+              <Button
+                size="sm"
+                className="bg-slate-800 text-white hover:bg-slate-700 border border-white/10"
+                onClick={() => copyText(positive, "Prompt")}
+              >
+                <Copy className="mr-2 h-4 w-4" /> Copy to Clipboard
+              </Button>
             )}
           </div>
         </div>

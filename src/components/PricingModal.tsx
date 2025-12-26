@@ -46,6 +46,7 @@ const PricingModal: React.FC<PricingModalProps> = ({ open, onOpenChange }) => {
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <div className="flex items-center gap-2"><Badge>Unlocked</Badge> Image generation</div>
+              <div className="flex items-center gap-2"><Badge>Unlocked</Badge> One‑Click Local Generation</div>
               <div className="flex items-center gap-2"><Badge>Unlocked</Badge> Advanced negatives</div>
               <div className="flex items-center gap-2"><Badge>Unlocked</Badge> Cloud sync</div>
             </CardContent>
