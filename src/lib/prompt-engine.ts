@@ -291,6 +291,14 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   const body = pickOne(rng, bodyTypes);
   const expression = pickExpression(scenario, rng);
 
+  // Select NSFW tokens early (Safe Mode OFF) to factor coverage into pocket logic
+  const selectedNSFW = selectNSFWTokens({
+    safeMode: config.safeMode,
+    style,
+    theme,
+    basePoseLabel: "", // pick coverage/location/lighting without pose dependency
+  });
+
   // Theme-filtered outfits + constraints
   let outfitPool = filterByTheme(outfits, theme).filter((o) => o.contextsAllowed.includes(scenario));
   if (theme === "fantasy") {
@@ -314,6 +322,22 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
     layeredOuterwear = selectedOw?.label;
     layeredFootwear = selectedFw?.label;
     hasPocketsEffective = hasPocketsEffective || !!selectedOw?.hasPockets;
+  }
+
+  // Coverage override: garments without pockets (e.g., lingerie, negligee, bikini) disable pocket use
+  const noPocketCoverage = new Set([
+    "lingerie",
+    "negligee",
+    "bikini",
+    "sheer fabric",
+    "lace lingerie",
+    "silk robe",
+  ]);
+  const nsfwCoverageLabels = selectedNSFW
+    .filter((t) => t.category === "coverage")
+    .map((t) => t.label.toLowerCase());
+  if (nsfwCoverageLabels.some((lbl) => noPocketCoverage.has(lbl))) {
+    hasPocketsEffective = false;
   }
 
   // Pose selection respects pockets
@@ -388,13 +412,7 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
 
   const identity = `1girl, solo${speciesTags ? ", " + speciesTags : ""}, ${body}, ${hair}, ${eyes}, ${expression}, ${pose.label}`;
 
-  // NSFW tokens if Safe Mode is OFF
-  const selectedNSFW = selectNSFWTokens({
-    safeMode: config.safeMode,
-    style,
-    theme,
-    basePoseLabel: pose.label || "",
-  });
+  // selectedNSFW already computed above
 
   // Fashion composition
   const fashionParts: string[] = [outfit.label];
