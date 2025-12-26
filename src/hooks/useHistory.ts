@@ -24,7 +24,7 @@ export function useHistory(userId?: string | null) {
           .from("generated_prompts")
           .select("id, positive_prompt, negative_prompt, settings, created_at")
           .order("created_at", { ascending: false })
-          .limit(40);
+          .limit(10);
 
         if (!mounted) return;
 
@@ -48,7 +48,7 @@ export function useHistory(userId?: string | null) {
         try {
           const raw = localStorage.getItem("generator:history");
           const parsed: HistoryItem[] = raw ? JSON.parse(raw) : [];
-          setHistory(parsed);
+          setHistory(parsed.slice(0, 10));
         } catch {
           setHistory([]);
         }
@@ -83,7 +83,7 @@ export function useHistory(userId?: string | null) {
             timestamp: new Date(row.created_at).getTime(),
             favorite: false,
           };
-          setHistory((prev) => [newItem, ...prev].slice(0, 40));
+          setHistory((prev) => [newItem, ...prev].slice(0, 10));
         }
       } else {
         const newItem: HistoryItem = {
@@ -94,7 +94,7 @@ export function useHistory(userId?: string | null) {
           timestamp: Date.now(),
           favorite: false,
         };
-        const next = [newItem, ...history].slice(0, 40);
+        const next = [newItem, ...history].slice(0, 10);
         setHistory(next);
         try {
           localStorage.setItem("generator:history", JSON.stringify(next));

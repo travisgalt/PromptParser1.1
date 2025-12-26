@@ -7,37 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Copy } from "lucide-react";
 import { showSuccess } from "@/utils/toast";
-
-type Item = {
-  id: string;
-  positive: string;
-  negative?: string;
-  seed: number;
-  timestamp: number;
-  favorite: boolean;
-};
+import { useSession } from "@/components/auth/SessionProvider";
+import useHistory from "@/hooks/useHistory";
 
 const HistorySidebar: React.FC = () => {
-  const [items, setItems] = React.useState<Item[]>([]);
-
-  const load = React.useCallback(() => {
-    try {
-      const raw = localStorage.getItem("generator:history");
-      const parsed: Item[] = raw ? JSON.parse(raw) : [];
-      setItems(parsed.slice(0, 10));
-    } catch {
-      setItems([]);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    load();
-    const handler = () => load();
-    window.addEventListener("generator:history_update", handler as EventListener);
-    return () => {
-      window.removeEventListener("generator:history_update", handler as EventListener);
-    };
-  }, [load]);
+  const { session } = useSession();
+  const userId = session?.user?.id ?? null;
+  const { history, isLoading } = useHistory(userId);
 
   const copyText = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -50,12 +26,14 @@ const HistorySidebar: React.FC = () => {
         <CardTitle className="text-sm">Recent History</CardTitle>
       </CardHeader>
       <CardContent>
-        {items.length === 0 ? (
+        {isLoading ? (
+          <div className="text-xs text-muted-foreground">Loading history...</div>
+        ) : history.length === 0 ? (
           <div className="text-xs text-muted-foreground">No history yet.</div>
         ) : (
           <ScrollArea className="h-[320px] pr-2">
             <div className="space-y-3">
-              {items.map((item) => (
+              {history.map((item) => (
                 <div key={item.id} className="rounded-lg border border-white/10 p-2 bg-slate-900/40">
                   <div className="flex items-center justify-between mb-2">
                     <Badge variant={item.favorite ? "default" : "secondary"}>Seed: {item.seed}</Badge>
