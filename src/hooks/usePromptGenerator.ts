@@ -23,12 +23,28 @@ type OutputState = {
 export function usePromptGenerator(opts?: { userId?: string }) {
   const initialControls = React.useMemo<ControlsState>(() => {
     const parsed = parseControlsFromQuery(window.location.search);
+
+    const prefMediumRaw = typeof window !== "undefined" ? localStorage.getItem("pref_default_medium") : null;
+    const prefSafeRaw = typeof window !== "undefined" ? localStorage.getItem("pref_default_safemode") : null;
+
+    const prefMedium =
+      prefMediumRaw === "photo" ? "photo" :
+      prefMediumRaw === "render" ? "render" :
+      undefined;
+
+    const prefSafe =
+      prefSafeRaw === "true" ? true :
+      prefSafeRaw === "false" ? false :
+      undefined;
+
     return {
       seed: parsed.seed ?? randomSeed(),
       includeNegative: parsed.includeNegative ?? true,
       negativeIntensity: parsed.negativeIntensity ?? 1.1,
-      medium: parsed.medium ?? "photo",
-      safeMode: parsed.safeMode ?? true,
+      // Use query value if present, else localStorage preference, else fallback
+      medium: (parsed.medium as "photo" | "render" | undefined) ?? prefMedium ?? "photo",
+      // Use query value if present, else localStorage preference, else fallback
+      safeMode: (typeof parsed.safeMode === "boolean" ? parsed.safeMode : (prefSafe ?? true)),
     };
   }, []);
 
