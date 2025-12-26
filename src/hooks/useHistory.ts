@@ -41,6 +41,7 @@ export function useHistory(userId?: string | null) {
           seed: (row.settings && typeof row.settings.seed === "number") ? row.settings.seed : 0,
           timestamp: new Date(row.created_at).getTime(),
           favorite: false,
+          settings: row.settings ?? undefined,
         }));
         setHistory(items);
         setIsLoading(false);
@@ -74,6 +75,7 @@ export function useHistory(userId?: string | null) {
               seed: (row.settings && typeof row.settings.seed === "number") ? row.settings.seed : 0,
               timestamp: new Date(row.created_at).getTime(),
               favorite: false,
+              settings: row.settings ?? undefined,
             }));
             setHistory(items);
           });
@@ -117,6 +119,7 @@ export function useHistory(userId?: string | null) {
             seed: (row.settings && typeof row.settings.seed === "number") ? row.settings.seed : seed,
             timestamp: new Date(row.created_at).getTime(),
             favorite: false,
+            settings: row.settings ?? undefined,
           };
           setHistory((prev) => [newItem, ...prev].slice(0, 10));
           // Broadcast update so other listeners (e.g., sidebar) refresh
@@ -130,6 +133,7 @@ export function useHistory(userId?: string | null) {
           seed,
           timestamp: Date.now(),
           favorite: false,
+          settings,
         };
         const next = [newItem, ...history].slice(0, 10);
         setHistory(next);

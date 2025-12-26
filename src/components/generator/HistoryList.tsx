@@ -15,6 +15,7 @@ export type HistoryItem = {
   seed: number;
   timestamp: number;
   favorite: boolean;
+  settings?: any; // NEW: carry saved settings (style, theme, model, safeMode, etc.)
 };
 
 type Props = {

@@ -26,7 +26,7 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
   const { controls, setControls, output, generate, randomize } = usePromptGenerator({ userId });
 
   // History hook: handles persistence and loading based on auth state
-  const { saveItem, history } = useHistory(userId);
+  const { saveItem, history, isLoading } = useHistory(userId);
 
   const [negPool, setNegPool] = React.useState<string[] | null>(null);
   const [isBanned, setIsBanned] = React.useState<boolean>(false);
@@ -70,6 +70,36 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
     }
     loadBanStatus();
   }, [userId]);
+
+  // NEW: Restore last session once history is loaded
+  React.useEffect(() => {
+    if (isLoading) return;
+    if (history && history.length > 0) {
+      const last = history[0];
+      // Restore controls from saved settings and seed
+      setControls((c) => ({
+        ...c,
+        seed: last.seed,
+        selectedStyle: last.settings?.style ?? c.selectedStyle,
+        selectedTheme: last.settings?.theme ?? c.selectedTheme,
+        selectedModelId: last.settings?.model ?? c.selectedModelId,
+        includeNegative: last.settings?.includeNegative ?? c.includeNegative,
+        negativeIntensity: last.settings?.negativeIntensity ?? c.negativeIntensity,
+        safeMode: last.settings?.safeMode ?? c.safeMode,
+        selectedSpecies: last.settings?.selectedSpecies ?? c.selectedSpecies,
+      }));
+      // Restore output text
+      output.setPositive(last.positive);
+      output.setNegative(last.negative);
+      // Clear any previous image preview
+      setGeneratedImage(null);
+    } else {
+      // Optional: generate one initial prompt for brand-new users
+      runGeneration(controls);
+    }
+    // run only when initial load finishes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading]);
 
   const handleGenerateImage = async () => {
     setIsGeneratingImg(true);
