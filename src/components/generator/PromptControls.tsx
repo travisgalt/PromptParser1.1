@@ -16,7 +16,7 @@ import { speciesList, stylesList, themesList } from "@/lib/prompt-data";
 import { models } from "@/lib/model-data";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import useSubscription from "@/hooks/useSubscription";
-import PricingModal from "@/components/PricingModal";
+import PricingModal from "@/components/subscription/PricingModal";
 
 export type ControlsState = {
   seed: number;
@@ -71,7 +71,7 @@ export const PromptControls: React.FC<Props> = ({
   }, [isLoggedIn]);
 
   const { isPro, isLoading: subLoading } = useSubscription();
-  const [pricingOpen, setPricingOpen] = React.useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = React.useState(false);
 
   return (
     <Card className="w-full bg-slate-900/50 backdrop-blur-md border border-white/10">
@@ -252,7 +252,7 @@ export const PromptControls: React.FC<Props> = ({
             Generate Prompt ✨
           </Button>
 
-          {isPro && (
+          {isPro ? (
             <Button
               onClick={onGenerateImage}
               disabled={generatingImage || subLoading}
@@ -260,9 +260,28 @@ export const PromptControls: React.FC<Props> = ({
             >
               {generatingImage ? "Generating..." : "Generate Image (Local Forge)"}
             </Button>
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                onClick={() => setShowUpgradeModal(true)}
+                className="w-full hover:bg-white/10 text-muted-foreground"
+              >
+                Generate Image (Pro Only)
+              </Button>
+              <div className="text-xs text-muted-foreground">
+                Free Plan: Copy the prompt above and paste it into your local WebUI manually.
+              </div>
+            </>
           )}
-          {!isPro && <PricingModal open={pricingOpen} onOpenChange={setPricingOpen} />}
         </div>
+
+        {!isPro && (
+          <PricingModal
+            isOpen={showUpgradeModal}
+            onClose={() => setShowUpgradeModal(false)}
+          />
+        )}
       </CardContent>
     </Card>
   );

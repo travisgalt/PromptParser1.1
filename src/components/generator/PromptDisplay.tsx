@@ -43,6 +43,15 @@ export const PromptDisplay: React.FC<Props> = ({
   };
 
   const { isPro } = useSubscription();
+  const [copyHintPulse, setCopyHintPulse] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!isPro) {
+      setCopyHintPulse(true);
+      const t = setTimeout(() => setCopyHintPulse(false), 1200);
+      return () => clearTimeout(t);
+    }
+  }, [positive, isPro]);
 
   return (
     <Card className="w-full bg-slate-900/50 backdrop-blur-md border border-white/10">
@@ -62,19 +71,29 @@ export const PromptDisplay: React.FC<Props> = ({
         <div className="flex flex-col border border-white/10 rounded-md overflow-hidden">
           <div className="w-full flex items-center justify-between p-2 bg-white/5 border-b border-white/10">
             <p className="text-sm text-muted-foreground">Positive</p>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-white/10"
-                onClick={() => {
-                  navigator.clipboard.writeText(positive);
-                  showSuccess("Positive prompt copied");
-                }}
-                aria-label="Copy Positive"
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
+            <div className="flex items-center gap-2">
+              {isPro ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-white/10"
+                  onClick={() => {
+                    navigator.clipboard.writeText(positive);
+                    showSuccess("Positive prompt copied");
+                  }}
+                  aria-label="Copy Positive"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  className={`bg-slate-800 text-white hover:bg-slate-700 border border-white/10 ${copyHintPulse ? "animate-pulse" : ""}`}
+                  onClick={() => copyText(positive, "Prompt")}
+                >
+                  <Copy className="mr-2 h-4 w-4" /> Copy to Clipboard
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
@@ -104,27 +123,17 @@ export const PromptDisplay: React.FC<Props> = ({
             >
               <Shuffle className="mr-2 h-4 w-4" /> Shuffle
             </Button>
-            {isPro ? (
-              onShare ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="hover:bg-white/10"
-                  onClick={onShare}
-                >
-                  Share
-                </Button>
-              ) : (
-                <div />
-              )
-            ) : (
+            {onShare ? (
               <Button
+                variant="ghost"
                 size="sm"
-                className="bg-slate-800 text-white hover:bg-slate-700 border border-white/10"
-                onClick={() => copyText(positive, "Prompt")}
+                className="hover:bg-white/10"
+                onClick={onShare}
               >
-                <Copy className="mr-2 h-4 w-4" /> Copy to Clipboard
+                Share
               </Button>
+            ) : (
+              <div />
             )}
           </div>
         </div>
