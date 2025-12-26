@@ -3,7 +3,6 @@
 import * as React from "react";
 import { generatePrompt, type GeneratorConfig } from "@/lib/prompt-engine";
 import { parseControlsFromQuery } from "@/lib/url-state";
-import { supabase } from "@/integrations/supabase/client";
 import type { ControlsState } from "@/components/generator/PromptControls";
 
 function randomSeed() {
@@ -61,7 +60,7 @@ export function usePromptGenerator(opts?: { userId?: string }) {
   }, []);
 
   const generate = React.useCallback(() => {
-    const newSeed = randomSeed();
+    const newSeed = Math.floor(Math.random() * 1_000_000_000);
     const config: GeneratorConfig = {
       seed: newSeed,
       includeNegative: controls.includeNegative,
@@ -77,22 +76,9 @@ export function usePromptGenerator(opts?: { userId?: string }) {
     setLastSeed(newSeed);
     setLastContext({ medium: controls.medium, scenario: result.selections.scenario });
 
-    // Save the generated prompt to Supabase when logged in (no user_id; DB default uses auth.uid())
-    if (opts?.userId) {
-      const settings = {
-        seed: newSeed,
-        medium: controls.medium,
-        includeNegative: controls.includeNegative,
-        negativeIntensity: controls.negativeIntensity,
-        safeMode: controls.safeMode,
-      };
-      supabase.from("generated_prompts").insert({
-        positive_prompt: result.positive,
-        negative_prompt: result.negative ?? null,
-        settings,
-      });
-    }
-  }, [controls, opts?.userId]);
+    // RETURN the generated values so caller can persist via useHistory
+    return { positive: result.positive, negative: result.negative, seed: newSeed };
+  }, [controls]);
 
   const output: OutputState = React.useMemo(
     () => ({
