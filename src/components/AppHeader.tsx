@@ -12,7 +12,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { useSession } from "@/components/auth/SessionProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { LogIn, LogOut, Shield, User as UserIcon } from "lucide-react";
@@ -93,10 +92,6 @@ export const AppHeader: React.FC = () => {
                   <Shield className="mr-2 h-4 w-4" /> Admin
                 </DropdownMenuItem>
               ) : null}
-              <DropdownMenuSeparator />
-              <div className="px-2 py-1.5">
-                <ThemeToggle />
-              </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={onSignOut}>
                 <LogOut className="mr-2 h-4 w-4" /> Sign out
