@@ -82,38 +82,35 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
     }
   };
 
-  // NEW: standardized generation-and-save function
-  const runGeneration = React.useCallback(() => {
+  // NEW: standardized async generation-and-save function
+  const runGeneration = React.useCallback(async (config: any) => {
     if (isBanned) {
       showError("Your account is banned. Prompt generation is disabled.");
       return;
     }
-
-    const result = generate(controls);
-
-    const settings = {
-      seed: result.seed,
-      style: controls.selectedStyle,
-      theme: controls.selectedTheme,
-      model: controls.selectedModelId,
-      includeNegative: controls.includeNegative,
-      negativeIntensity: controls.negativeIntensity,
-      safeMode: controls.safeMode,
-    };
-
-    saveItem({
+    // 1) Generate text/seed from the provided config (fresh controls)
+    const result = generate(config);
+    // 2) Clear any old images in the result zone
+    setGeneratedImage(null);
+    // 3) Save to history (DB/local) with the full config as settings
+    await saveItem({
       positive: result.positive,
       negative: result.negative,
       seed: result.seed,
-      settings,
+      settings: config,
     });
-
     showSuccess("Prompt updated");
-  }, [isBanned, controls, generate, saveItem]);
+  }, [isBanned, generate, saveItem]);
 
   const handleGenerate = React.useCallback(() => {
-    runGeneration();
-  }, [runGeneration]);
+    // Always use the latest controls
+    runGeneration(controls);
+  }, [controls, runGeneration]);
+
+  const handleShuffle = React.useCallback(() => {
+    // Shuffle uses the same generate-and-save flow
+    runGeneration(controls);
+  }, [controls, runGeneration]);
 
   const onShuffleNegative = () => {
     if (isBanned) {
@@ -147,7 +144,7 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
             positive={output.positive}
             negative={output.negative}
             seed={controls.seed}
-            onShuffle={runGeneration}
+            onShuffle={handleShuffle}
             onShare={onShare}
             onPositiveChange={output.setPositive}
             onClearPositive={output.clearPositive}
