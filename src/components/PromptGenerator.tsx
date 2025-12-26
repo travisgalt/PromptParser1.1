@@ -23,7 +23,7 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
   const { controls, setControls, output, generate, randomize } = usePromptGenerator({ userId });
 
   // History hook: handles persistence and loading based on auth state
-  const { saveItem } = useHistory(userId);
+  const { saveItem, history, favoritesIndex, saveHistory } = useHistory(userId);
 
   const [negPool, setNegPool] = React.useState<string[] | null>(null);
   const [isBanned, setIsBanned] = React.useState<boolean>(false);
@@ -39,6 +39,16 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
         }
       });
   }, []);
+
+  React.useEffect(() => {
+    async function loadUserData() {
+      if (!userId) return;
+      // ... existing favorites load ...
+      // History load unchanged
+    }
+    loadUserData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   React.useEffect(() => {
     async function loadBanStatus() {
@@ -62,10 +72,39 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
       return;
     }
 
+    if (output.positive.trim().length > 0) {
+      const prevItem = {
+        id: `${controls.seed}-${Date.now()}`,
+        positive: output.positive,
+        negative: output.negative,
+        seed: controls.seed,
+        timestamp: Date.now(),
+        favorite: favoritesIndex.has(favKey({ positive: output.positive, seed: controls.seed })),
+      };
+      const prevNext = [prevItem, ...history].slice(0, 40);
+      saveHistory(prevNext);
+
+      if (userId) {
+        const configJson = {
+          style: controls.selectedStyle,
+          includeNegative: controls.includeNegative,
+          negativeIntensity: controls.negativeIntensity,
+          safeMode: controls.safeMode,
+        };
+        supabase.from("prompt_history").insert({
+          user_id: userId,
+          positive_text: prevItem.positive,
+          negative_text: prevItem.negative ?? null,
+          seed: prevItem.seed,
+          config_json: configJson,
+        });
+      }
+    }
+
     const result = generate();
     const settings = {
       seed: result.seed,
-      medium: controls.medium,
+      style: controls.selectedStyle,
       includeNegative: controls.includeNegative,
       negativeIntensity: controls.negativeIntensity,
       safeMode: controls.safeMode,
@@ -79,14 +118,17 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
     });
 
     showSuccess("Prompt updated");
-  }, [isBanned, generate, controls.medium, controls.includeNegative, controls.negativeIntensity, controls.safeMode, saveItem]);
+  }, [isBanned, output.positive, output.negative, controls.seed, favoritesIndex, history, saveHistory, userId, controls.selectedStyle, controls.includeNegative, controls.negativeIntensity, controls.safeMode, generate, saveItem]);
 
   const onShuffleNegative = () => {
     if (isBanned) {
       showError("Your account is banned. Prompt generation is disabled.");
       return;
     }
-    const nextNeg = generateNegativePrompt(controls.negativeIntensity, negPool || undefined, undefined, output.lastContext);
+    // Map style to legacy medium hint for negatives
+    const style = output.lastContext?.style as string | undefined;
+    const mediumForContext = style === "photorealistic" ? "photo" : style === "3d_render" ? "render" : undefined;
+    const nextNeg = generateNegativePrompt(controls.negativeIntensity, undefined, undefined, { medium: mediumForContext, scenario: output.lastContext?.scenario });
     output.setNegative(nextNeg);
     showSuccess("Negative updated");
   };

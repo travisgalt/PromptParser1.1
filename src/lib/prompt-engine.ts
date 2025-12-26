@@ -30,7 +30,6 @@ export type GeneratorConfig = {
   seed: number;
   includeNegative: boolean;
   negativeIntensity: number; // e.g. 1.0..1.4
-  medium: Medium; // photo or render
   safeMode: boolean;
   allowedSpecies: string[]; // e.g., ['human','elf']
   theme: ThemeKey; // 'any' | 'fantasy' | 'modern' | ...
@@ -88,8 +87,9 @@ function pickExpression(scenario: ScenarioKey, rng: RNG): string {
   return pickOne(rng, [...expressions.positive, ...expressions.neutral, ...expressions.moody]);
 }
 
-function pickCameraLogic(medium: Medium, pose: PoseItem, rng: RNG) {
-  if (medium !== "photo") return { shotType: undefined, cameraAngle: undefined, lens: undefined };
+function pickCameraLogic(style: string, pose: PoseItem, rng: RNG) {
+  // Only apply camera hints for photorealistic style
+  if (style !== "photorealistic") return { shotType: undefined, cameraAngle: undefined, lens: undefined };
   const shotType = pose.forcedShotType ?? pickOne(rng, shotTypes);
   const cameraAngle = pickOne(rng, cameraAngles);
   let lens = "";
@@ -217,11 +217,11 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   const accCount = randomInt(rng, 1, 2);
   const acc = pickMany(rng, accPool, accCount);
 
-  // Tech terms based on medium (photo vs render)
-  let tech = config.medium === "photo" ? pickOne(rng, photoTech) : pickOne(rng, renderTech);
+  // Tech terms based on style (photorealistic vs everything else)
+  let tech = config.style === "photorealistic" ? pickOne(rng, photoTech) : pickOne(rng, renderTech);
 
-  // CAMERA LOGIC (Only for Photo)
-  const { shotType, cameraAngle, lens } = pickCameraLogic(config.medium, pose, rng);
+  // CAMERA LOGIC (Only for photorealistic)
+  const { shotType, cameraAngle, lens } = pickCameraLogic(config.style, pose, rng);
   if (shotType && cameraAngle && lens) {
     tech = `${tech}, ${shotType}, ${cameraAngle}, ${lens}`;
   }
@@ -280,10 +280,20 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   // Positive composition
   const positive = `${quality}, ${identity}, ${fashion}, ${scene}, ${tech}`;
 
-  // Negative
+  // Negative (map style to a photo/render hint for legacy negative logic)
+  const mediumForContext: Medium | undefined =
+    config.style === "photorealistic" ? "photo" :
+    config.style === "3d_render" ? "render" :
+    undefined;
+
   const negative =
     config.includeNegative
-      ? generateNegativePrompt(config.negativeIntensity, undefined, config.seed, { medium: config.medium, scenario })
+      ? generateNegativePrompt(
+          config.negativeIntensity,
+          undefined,
+          config.seed,
+          { medium: mediumForContext, scenario }
+        )
       : undefined;
 
   return {

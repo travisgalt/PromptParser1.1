@@ -7,14 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { HelpCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSession } from "@/components/auth/SessionProvider";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { speciesList, stylesList, themesList } from "@/lib/prompt-data";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
@@ -23,7 +18,6 @@ export type ControlsState = {
   seed: number;
   includeNegative: boolean;
   negativeIntensity: number;
-  medium: "photo" | "render";
   safeMode: boolean;
   selectedSpecies: string[];
   selectedTheme: "any" | "fantasy" | "modern" | "scifi" | "cyberpunk" | "steampunk" | "post_apocalyptic" | "horror_gothic" | "noir" | "school_life";
@@ -73,42 +67,8 @@ export const PromptControls: React.FC<Props> = ({
         <CardTitle className="text-xl">Prompt Controls</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Top row: Style and Theme side-by-side */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Seed */}
-          <div className="space-y-2">
-            <Label htmlFor="seed">Seed</Label>
-            <div className="flex gap-2">
-              <Input
-                id="seed"
-                type="number"
-                value={state.seed}
-                onChange={(e) => setField("seed", Number(e.target.value || 0))}
-              />
-              <Button variant="secondary" onClick={onRandomizeSeed}>
-                Randomize
-              </Button>
-            </div>
-          </div>
-
-          {/* Medium */}
-          <div className="space-y-2">
-            <Label>Medium</Label>
-            <RadioGroup
-              value={state.medium}
-              onValueChange={(v) => setField("medium", v as "photo" | "render")}
-              className="flex gap-6"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="photo" id="medium-photo" />
-                <Label htmlFor="medium-photo">Photo</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="render" id="medium-render" />
-                <Label htmlFor="medium-render">Render</Label>
-              </div>
-            </RadioGroup>
-          </div>
-
           {/* Style Select */}
           <div className="space-y-2">
             <Label>Style</Label>
@@ -119,7 +79,7 @@ export const PromptControls: React.FC<Props> = ({
               <SelectContent>
                 {stylesList.map((s) => (
                   <SelectItem key={s} value={s}>
-                    {s.replace("_", " ").replace("_", " ")}
+                    {s.replace(/_/g, " ")}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -136,76 +96,28 @@ export const PromptControls: React.FC<Props> = ({
               <SelectContent>
                 {themesList.map((t) => (
                   <SelectItem key={t} value={t}>
-                    {t.replace("_", " ").replace("_", " ")}
+                    {t.replace(/_/g, " ")}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+        </div>
 
-          {/* Character Settings */}
-          <div className="space-y-4 md:col-span-2">
-            <Label className="text-base">Character Settings</Label>
-
-            {/* Species grid */}
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {speciesList.map((sp) => {
-                  const checked = (state.selectedSpecies || []).includes(sp);
-                  const id = `species-${sp.replace(/\s+/g, "-")}`;
-                  return (
-                    <div key={sp} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={id}
-                        checked={checked}
-                        onCheckedChange={() => toggleSpecies(sp)}
-                        className="data-[state=checked]:bg-violet-600 data-[state=checked]:border-violet-600 focus-visible:ring-violet-600"
-                      />
-                      <Label htmlFor={id} className="capitalize">
-                        {sp}
-                      </Label>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Include Negative */}
+        {/* Seed input moved below */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col">
-                <Label htmlFor="neg">Include Negative</Label>
-                <span className="text-xs text-muted-foreground">Curated negatives to reduce artifacts</span>
-              </div>
-              <Switch id="neg" checked={state.includeNegative} onCheckedChange={(c) => setField("includeNegative", c)} />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Label>Negative Intensity</Label>
-                {!isLoggedIn && <span className="text-xs text-muted-foreground">Login to unlock</span>}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="max-w-xs">
-                      Controls the strength of negative prompts. Higher values (e.g. 1.3) tell the AI to avoid these concepts more aggressively.
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <Slider
-                min={0.8}
-                max={1.4}
-                step={0.05}
-                value={[isLoggedIn ? state.negativeIntensity : 1.0]}
-                onValueChange={(v) => {
-                  if (isLoggedIn) setField("negativeIntensity", v[0] ?? 1.0);
-                }}
-                disabled={!isLoggedIn}
+            <Label htmlFor="seed">Seed</Label>
+            <div className="flex gap-2">
+              <Input
+                id="seed"
+                type="number"
+                value={state.seed}
+                onChange={(e) => setField("seed", Number(e.target.value || 0))}
               />
-              <div className="text-xs text-muted-foreground">{(isLoggedIn ? state.negativeIntensity : 1.0).toFixed(2)}</div>
+              <Button variant="secondary" onClick={onRandomizeSeed}>
+                Randomize
+              </Button>
             </div>
           </div>
 
@@ -213,13 +125,93 @@ export const PromptControls: React.FC<Props> = ({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="safe">Safe Mode</Label>
-              <Switch id="safe" checked={state.safeMode} onCheckedChange={(c) => setField("safeMode", c)} />
+              <Switch
+                id="safe"
+                checked={state.safeMode}
+                onCheckedChange={(c) => setField("safeMode", c)}
+              />
             </div>
-            <span className="text-xs text-muted-foreground">Filters sensitive accessories and tokens</span>
+            <span className="text-xs text-muted-foreground">
+              Filters sensitive accessories and tokens
+            </span>
           </div>
         </div>
 
-        {/* Primary action at bottom */}
+        {/* Character Settings */}
+        <div className="space-y-4">
+          <Label className="text-base">Character Settings</Label>
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {speciesList.map((sp) => {
+                const checked = (state.selectedSpecies || []).includes(sp);
+                const id = `species-${sp.replace(/\s+/g, "-")}`;
+                return (
+                  <div key={sp} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={id}
+                      checked={checked}
+                      onCheckedChange={() => toggleSpecies(sp)}
+                      className="data-[state=checked]:bg-violet-600 data-[state=checked]:border-violet-600 focus-visible:ring-violet-600"
+                    />
+                    <Label htmlFor={id} className="capitalize">
+                      {sp}
+                    </Label>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Negative controls */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col">
+              <Label htmlFor="neg">Include Negative</Label>
+              <span className="text-xs text-muted-foreground">
+                Curated negatives to reduce artifacts
+              </span>
+            </div>
+            <Switch
+              id="neg"
+              checked={state.includeNegative}
+              onCheckedChange={(c) => setField("includeNegative", c)}
+            />
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label>Negative Intensity</Label>
+              {!isLoggedIn && (
+                <span className="text-xs text-muted-foreground">Login to unlock</span>
+              )}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">
+                    Controls the strength of negative prompts. Higher values (e.g. 1.3) tell the AI to avoid these concepts more aggressively.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <Slider
+              min={0.8}
+              max={1.4}
+              step={0.05}
+              value={[isLoggedIn ? state.negativeIntensity : 1.0]}
+              onValueChange={(v) => {
+                if (isLoggedIn) setField("negativeIntensity", v[0] ?? 1.0);
+              }}
+              disabled={!isLoggedIn}
+            />
+            <div className="text-xs text-muted-foreground">
+              {(isLoggedIn ? state.negativeIntensity : 1.0).toFixed(2)}
+            </div>
+          </div>
+        </div>
+
+        {/* Primary action */}
         <div className="pt-2">
           <Button
             size="lg"

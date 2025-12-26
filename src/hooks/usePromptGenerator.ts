@@ -24,24 +24,16 @@ export function usePromptGenerator(opts?: { userId?: string }) {
   const initialControls = React.useMemo<ControlsState>(() => {
     const parsed = parseControlsFromQuery(window.location.search);
 
-    const prefMediumRaw = typeof window !== "undefined" ? localStorage.getItem("pref_default_medium") : null;
     const prefSafeRaw = typeof window !== "undefined" ? localStorage.getItem("pref_default_safemode") : null;
-
-    const prefMedium =
-      prefMediumRaw === "photo" ? "photo" :
-      prefMediumRaw === "render" ? "render" :
-      undefined;
-
     const prefSafe =
       prefSafeRaw === "true" ? true :
       prefSafeRaw === "false" ? false :
       undefined;
 
     return {
-      seed: parsed.seed ?? Math.floor(Math.random() * 1_000_000_000),
+      seed: parsed.seed ?? randomSeed(),
       includeNegative: parsed.includeNegative ?? true,
       negativeIntensity: parsed.negativeIntensity ?? 1.1,
-      medium: (parsed.medium as "photo" | "render" | undefined) ?? prefMedium ?? "photo",
       safeMode: (typeof parsed.safeMode === "boolean" ? parsed.safeMode : (prefSafe ?? true)),
       selectedSpecies: ["human", "elf"],
       selectedTheme: "any",
@@ -57,11 +49,10 @@ export function usePromptGenerator(opts?: { userId?: string }) {
 
   // Generate initial output once on mount based on initial controls
   React.useEffect(() => {
-    const config: GeneratorConfig = {
+    const config = {
       seed: controls.seed,
       includeNegative: controls.includeNegative,
       negativeIntensity: controls.negativeIntensity,
-      medium: controls.medium,
       safeMode: controls.safeMode,
       allowedSpecies: controls.selectedSpecies,
       theme: controls.selectedTheme,
@@ -71,7 +62,7 @@ export function usePromptGenerator(opts?: { userId?: string }) {
     setPositive(result.positive);
     setNegative(result.negative);
     setLastSeed(controls.seed);
-    setLastContext({ medium: controls.medium, scenario: result.selections.scenario });
+    setLastContext({ style: controls.selectedStyle, scenario: result.selections.scenario });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -80,12 +71,11 @@ export function usePromptGenerator(opts?: { userId?: string }) {
   }, []);
 
   const generate = React.useCallback(() => {
-    const newSeed = Math.floor(Math.random() * 1_000_000_000);
-    const config: GeneratorConfig = {
+    const newSeed = randomSeed();
+    const config = {
       seed: newSeed,
       includeNegative: controls.includeNegative,
       negativeIntensity: controls.negativeIntensity,
-      medium: controls.medium,
       safeMode: controls.safeMode,
       allowedSpecies: controls.selectedSpecies,
       theme: controls.selectedTheme,
@@ -97,7 +87,7 @@ export function usePromptGenerator(opts?: { userId?: string }) {
     setPositive(result.positive);
     setNegative(result.negative);
     setLastSeed(newSeed);
-    setLastContext({ medium: controls.medium, scenario: result.selections.scenario });
+    setLastContext({ style: controls.selectedStyle, scenario: result.selections.scenario });
 
     return { positive: result.positive, negative: result.negative, seed: newSeed };
   }, [controls]);
