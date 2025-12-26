@@ -10,6 +10,7 @@ export type OutfitItem = {
   label: string;
   hasPockets: boolean;
   contextsAllowed: ScenarioKey[];
+  theme: "fantasy" | "modern" | "scifi" | "any";
 };
 
 export type PoseItem = {
@@ -32,6 +33,7 @@ export type BackgroundItem = {
   label: string;
   environment: "indoor" | "outdoor" | "studio";
   timeOfDay?: "day" | "night";
+  theme: "fantasy" | "modern" | "scifi" | "any";
 };
 
 export type ExtraWearItem = {
@@ -94,20 +96,20 @@ export const cameraAngles: string[] = [
 ];
 
 export const outfits: OutfitItem[] = [
-  { label: "shiny latex bodysuit, high collar, chains", hasPockets: false, contextsAllowed: ["studio", "indoor_private"] },
-  { label: "distressed black denim jacket, torn fishnet tights, band t-shirt", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
-  { label: "plaid punk skirt, safety pins, leather combat boots, studded belt", hasPockets: false, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
-  { label: "gothic lolita dress, velvet texture, white lace trim", hasPockets: false, contextsAllowed: ["studio", "indoor_private", "outdoor_public_night"] },
-  { label: "mesh top, see-through, black bra, leather mini skirt", hasPockets: false, contextsAllowed: ["studio", "indoor_private"] },
-  { label: "vinyl pants, reflective fabric, cropped hoodie", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
-  { label: "black satin slip dress, smooth texture, lace hem", hasPockets: false, contextsAllowed: ["studio", "indoor_private"] },
-  { label: "white cotton oversized shirt, no pants, comfy", hasPockets: false, contextsAllowed: ["indoor_private"] },
-  { label: "silk pajamas, glossy fabric", hasPockets: false, contextsAllowed: ["indoor_private"] },
-  { label: "sports bra, yoga pants, spandex, athleisure", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
-  { label: "knitted off-shoulder sweater, soft texture, collarbone", hasPockets: false, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
-  { label: "tight denim jeans, stone wash, white tank top", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
-  { label: "sundress, floral pattern, light cotton fabric", hasPockets: false, contextsAllowed: ["outdoor_public_day", "indoor_private", "studio"] },
-  { label: "leather biker jacket, hoodie underneath, leggings", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"] },
+  { label: "shiny latex bodysuit, high collar, chains", hasPockets: false, contextsAllowed: ["studio", "indoor_private"], theme: "modern" },
+  { label: "distressed black denim jacket, torn fishnet tights, band t-shirt", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"], theme: "modern" },
+  { label: "plaid punk skirt, safety pins, leather combat boots, studded belt", hasPockets: false, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"], theme: "modern" },
+  { label: "gothic lolita dress, velvet texture, white lace trim", hasPockets: false, contextsAllowed: ["studio", "indoor_private", "outdoor_public_night"], theme: "modern" },
+  { label: "mesh top, see-through, black bra, leather mini skirt", hasPockets: false, contextsAllowed: ["studio", "indoor_private"], theme: "modern" },
+  { label: "vinyl pants, reflective fabric, cropped hoodie", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"], theme: "modern" },
+  { label: "black satin slip dress, smooth texture, lace hem", hasPockets: false, contextsAllowed: ["studio", "indoor_private"], theme: "modern" },
+  { label: "white cotton oversized shirt, no pants, comfy", hasPockets: false, contextsAllowed: ["indoor_private"], theme: "modern" },
+  { label: "silk pajamas, glossy fabric", hasPockets: false, contextsAllowed: ["indoor_private"], theme: "modern" },
+  { label: "sports bra, yoga pants, spandex, athleisure", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"], theme: "modern" },
+  { label: "knitted off-shoulder sweater, soft texture, collarbone", hasPockets: false, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"], theme: "modern" },
+  { label: "tight denim jeans, stone wash, white tank top", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"], theme: "modern" },
+  { label: "sundress, floral pattern, light cotton fabric", hasPockets: false, contextsAllowed: ["outdoor_public_day", "indoor_private", "studio"], theme: "modern" },
+  { label: "leather biker jacket, hoodie underneath, leggings", hasPockets: true, contextsAllowed: ["outdoor_public_day", "outdoor_public_night", "indoor_private", "studio"], theme: "modern" },
 ];
 
 export const poses: PoseItem[] = [
@@ -149,18 +151,18 @@ export const footwearItems: ExtraWearItem[] = [
 ];
 
 export const backgrounds: BackgroundItem[] = [
-  { label: "messy bedroom, unmade bed, indoors, clutter", environment: "indoor" },
-  { label: "luxury hotel room, dim lighting", environment: "indoor" },
-  { label: "minimalist living room, sofa", environment: "indoor" },
-  { label: "neon lit city street, bokeh city lights, cyberpunk vibe", environment: "outdoor", timeOfDay: "night" },
-  { label: "dark alleyway, wet ground, reflections", environment: "outdoor", timeOfDay: "night" },
-  { label: "rooftop at night, city skyline", environment: "outdoor", timeOfDay: "night" },
-  { label: "coffee shop window, daylight, sunny", environment: "outdoor", timeOfDay: "day" },
-  { label: "park bench, greenery, soft sunlight", environment: "outdoor", timeOfDay: "day" },
-  { label: "busy street, crowd blur, daylight", environment: "outdoor", timeOfDay: "day" },
-  { label: "simple background, white background, studio", environment: "studio" },
-  { label: "dark gradient background, abstract", environment: "studio" },
-  { label: "professional studio, rim lighting", environment: "studio" },
+  { label: "messy bedroom, unmade bed, indoors, clutter", environment: "indoor", theme: "modern" },
+  { label: "luxury hotel room, dim lighting", environment: "indoor", theme: "modern" },
+  { label: "minimalist living room, sofa", environment: "indoor", theme: "modern" },
+  { label: "neon lit city street, bokeh city lights, cyberpunk vibe", environment: "outdoor", timeOfDay: "night", theme: "scifi" },
+  { label: "dark alleyway, wet ground, reflections", environment: "outdoor", timeOfDay: "night", theme: "modern" },
+  { label: "rooftop at night, city skyline", environment: "outdoor", timeOfDay: "night", theme: "modern" },
+  { label: "coffee shop window, daylight, sunny", environment: "outdoor", timeOfDay: "day", theme: "modern" },
+  { label: "park bench, greenery, soft sunlight", environment: "outdoor", timeOfDay: "day", theme: "modern" },
+  { label: "busy street, crowd blur, daylight", environment: "outdoor", timeOfDay: "day", theme: "modern" },
+  { label: "simple background, white background, studio", environment: "studio", theme: "any" },
+  { label: "dark gradient background, abstract", environment: "studio", theme: "any" },
+  { label: "professional studio, rim lighting", environment: "studio", theme: "any" },
 ];
 
 export const lightingByContext: Record<string, string[]> = {
@@ -224,3 +226,5 @@ export const negativesBase: string[] = [
   "text",
   "text artifacts",
 ];
+
+export const speciesList = ["human", "elf", "demon", "android"];
