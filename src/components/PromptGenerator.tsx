@@ -87,6 +87,9 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
         negativeIntensity: last.settings?.negativeIntensity ?? c.negativeIntensity,
         safeMode: last.settings?.safeMode ?? c.safeMode,
         selectedSpecies: last.settings?.selectedSpecies ?? c.selectedSpecies,
+        // ADDED restore
+        hairColor: last.settings?.hairColor ?? c.hairColor,
+        eyeColor: last.settings?.eyeColor ?? c.eyeColor,
       }));
       // Restore output text
       output.setPositive(last.positive);
@@ -144,6 +147,9 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
         negativeIntensity: cfg.negativeIntensity,
         safeMode: cfg.safeMode,
         selectedSpecies: cfg.selectedSpecies,
+        // ADDED
+        hairColor: cfg.hairColor,
+        eyeColor: cfg.eyeColor,
       };
 
       await saveItem({

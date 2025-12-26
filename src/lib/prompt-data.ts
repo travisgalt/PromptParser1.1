@@ -165,11 +165,34 @@ export const hairStyles: string[] = [
   "undercut, pixie cut, edgy hair",
 ];
 
+// ADDED: Simple hair color options
+export const hairColors: string[] = [
+  "Random",
+  "Blonde",
+  "Brown",
+  "Black",
+  "Red",
+  "White",
+  "Silver",
+  "Pink",
+  "Blue",
+  "Purple",
+  "Green",
+  "Multicolor",
+];
+
+// REPLACED: eyeColors with requested simple list
 export const eyeColors: string[] = [
-  "red eyes, heavy eyeliner",
-  "ice blue eyes, glossy eyes",
-  "emerald green eyes, eyeshadow",
-  "golden eyes, sharp gaze",
+  "Random",
+  "Blue",
+  "Green",
+  "Brown",
+  "Red",
+  "Purple",
+  "Yellow",
+  "Amber",
+  "Grey",
+  "Heterochromia",
 ];
 
 export const bodyTypes: string[] = [

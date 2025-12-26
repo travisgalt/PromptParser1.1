@@ -12,7 +12,7 @@ import { Lock } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSession } from "@/components/auth/SessionProvider";
 import { Checkbox } from "@/components/ui/checkbox";
-import { speciesList, stylesList, themesList } from "@/lib/prompt-data";
+import { speciesList, stylesList, themesList, hairColors, eyeColors } from "@/lib/prompt-data";
 import { models } from "@/lib/model-data";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import useSubscription from "@/hooks/useSubscription";
@@ -29,6 +29,9 @@ export type ControlsState = {
   selectedModelId: string; // model checkpoint id
   width: number; // NEW
   height: number; // NEW
+  // ADDED
+  hairColor: string;
+  eyeColor: string;
 };
 
 type Props = {
@@ -270,6 +273,55 @@ export const PromptControls: React.FC<Props> = ({
               })}
             </div>
           </div>
+        </div>
+
+        {/* ADDED: Appearance Section */}
+        <div className="space-y-4">
+          <Label className="text-base">Appearance</Label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Hair Color */}
+            <div className="space-y-2">
+              <Label>Hair Color</Label>
+              <Select
+                value={state.hairColor}
+                onValueChange={(v) => setField("hairColor", v)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Hair Color" />
+                </SelectTrigger>
+                <SelectContent>
+                  {hairColors.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Eye Color */}
+            <div className="space-y-2">
+              <Label>Eye Color</Label>
+              <Select
+                value={state.eyeColor}
+                onValueChange={(v) => setField("eyeColor", v)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Eye Color" />
+                </SelectTrigger>
+                <SelectContent>
+                  {eyeColors.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Random picks realistic hair colors in Photorealistic style; Anime allows all colors.
+          </p>
         </div>
 
         {/* Negative controls */}

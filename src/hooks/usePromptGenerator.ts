@@ -41,6 +41,9 @@ export function usePromptGenerator(opts?: { userId?: string }) {
       selectedModelId: "standard",
       width: 1024, // NEW defaults for Standard
       height: 1024,
+      // ADDED defaults
+      hairColor: "Random",
+      eyeColor: "Random",
     };
   }, []);
 
@@ -61,6 +64,9 @@ export function usePromptGenerator(opts?: { userId?: string }) {
       theme: controls.selectedTheme,
       style: controls.selectedStyle,
       selectedModelId: controls.selectedModelId,
+      // ADDED
+      hairColor: controls.hairColor,
+      eyeColor: controls.eyeColor,
     };
     const result = generatePrompt(config);
     setPositive(result.positive);
@@ -87,6 +93,9 @@ export function usePromptGenerator(opts?: { userId?: string }) {
       theme: cur.selectedTheme,
       style: cur.selectedStyle,
       selectedModelId: cur.selectedModelId,
+      // ADDED
+      hairColor: cur.hairColor,
+      eyeColor: cur.eyeColor,
     };
     const result = generatePrompt(config);
 

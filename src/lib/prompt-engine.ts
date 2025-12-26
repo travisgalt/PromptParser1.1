@@ -2,6 +2,7 @@ import { mulberry32, pickOne, pickMany, RNG, randomInt } from "./prng";
 import {
   qualityTags,
   hairStyles,
+  hairColors,
   eyeColors,
   bodyTypes,
   expressions,
@@ -37,6 +38,8 @@ export type GeneratorConfig = {
   theme: ThemeKey;
   style: string;
   selectedModelId: string;
+  hairColor?: string;
+  eyeColor?: string;
 };
 
 export type GeneratedPrompt = {
@@ -255,6 +258,40 @@ function banLabels<T extends { label: string }>(items: T[], matchers: RegExp[]):
   return items.filter((i) => !matchers.some((m) => m.test(i.label)));
 }
 
+// ADDED: Resolve hair color tag with Random and style-aware filtering
+function resolveHairColorTag(style: string, selected: string | undefined, rng: RNG): string {
+  const sel = (selected ?? "Random");
+  const isRandom = sel === "Random";
+  const candidates = hairColors.filter((c) => c !== "Random");
+  let pool = candidates;
+
+  if (style === "photorealistic" && isRandom) {
+    // Filter out unnatural colors for photorealistic when Random
+    const block = new Set(["Pink", "Blue", "Green"]);
+    pool = candidates.filter((c) => !block.has(c));
+  }
+
+  const choice = isRandom ? pickOne(rng, pool) : sel;
+
+  if (choice === "Multicolor") {
+    return "multicolored hair, gradient hair";
+  }
+  return `${choice.toLowerCase()} hair`;
+}
+
+// ADDED: Resolve eye color tag with Random and special heterochromia
+function resolveEyeColorTag(style: string, selected: string | undefined, rng: RNG): string {
+  const sel = (selected ?? "Random");
+  const isRandom = sel === "Random";
+  const candidates = eyeColors.filter((c) => c !== "Random");
+  const choice = isRandom ? pickOne(rng, candidates) : sel;
+
+  if (choice === "Heterochromia") {
+    return "heterochromia, mismatching pupils";
+  }
+  return `${choice.toLowerCase()} eyes`;
+}
+
 export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   const rng = mulberry32(config.seed);
 
@@ -286,8 +323,11 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
     quality = `${model.triggerPrefix}, ${quality}`;
   }
 
-  const hair = pickOne(rng, hairStyles);
-  const eyes = pickOne(rng, eyeColors);
+  // UPDATED: Use new color logic (keep hairstyle separate for flavor)
+  const hairStyle = pickOne(rng, hairStyles);
+  const hairColorTag = resolveHairColorTag(style, config.hairColor, rng);
+  const eyeColorTag = resolveEyeColorTag(style, config.eyeColor, rng);
+
   const body = pickOne(rng, bodyTypes);
   const expression = pickExpression(scenario, rng);
 
@@ -410,7 +450,8 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
     }
   }
 
-  const identity = `1girl, solo${speciesTags ? ", " + speciesTags : ""}, ${body}, ${hair}, ${eyes}, ${expression}, ${pose.label}`;
+  // ADJUSTED: Place hair/eye color early after character/species tags
+  const identity = `1girl, solo${speciesTags ? ", " + speciesTags : ""}${hairColorTag ? ", " + hairColorTag : ""}${eyeColorTag ? ", " + eyeColorTag : ""}, ${body}, ${hairStyle}, ${expression}, ${pose.label}`;
 
   // selectedNSFW already computed above
 
@@ -461,8 +502,8 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
     selections: {
       scenario,
       quality,
-      hair,
-      eyes,
+      hair: hairColorTag,
+      eyes: eyeColorTag,
       body,
       expression,
       outfit,
