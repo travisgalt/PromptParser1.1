@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { showSuccess } from "@/utils/toast";
-import { Copy, Shuffle } from "lucide-react";
+import { Copy, Shuffle, Trash2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
@@ -42,7 +42,7 @@ export const PromptDisplay: React.FC<Props> = ({
   };
 
   return (
-    <Card className="w-full">
+    <Card className="w-full bg-slate-900/50 backdrop-blur-md border border-white/10">
       <CardHeader className="flex-row items-center justify-between">
         <CardTitle className="text-xl">Generated Prompt</CardTitle>
         <Badge variant="secondary">Seed: {seed}</Badge>
@@ -57,29 +57,49 @@ export const PromptDisplay: React.FC<Props> = ({
 
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">Positive</p>
-          <Textarea
-            value={positive}
-            onChange={(e) => onPositiveChange?.(e.target.value)}
-            className="min-h-[120px] text-sm"
-          />
-          <div className="flex flex-wrap gap-2">
+          <div className="relative">
+            <Textarea
+              value={positive}
+              onChange={(e) => onPositiveChange?.(e.target.value)}
+              className="min-h-[140px] text-sm font-mono bg-slate-900/60 border border-white/10 shadow-inner focus-visible:ring-violet-600"
+            />
+            <div className="absolute top-2 right-2 flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground hover:text-foreground hover:bg-white/10"
+                onClick={() => copyText(positive, "Positive prompt")}
+                aria-label="Copy"
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground hover:text-foreground hover:bg-white/10"
+                onClick={onClearPositive}
+                aria-label="Clear"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
             <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => copyText(positive, "Positive prompt")}
+              size="lg"
+              onClick={onShuffle}
+              disabled={disabledActions}
+              className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-600/30 hover:shadow-indigo-600/40 hover:from-violet-500 hover:to-indigo-500"
             >
-              <Copy className="mr-2 h-4 w-4" /> Copy Positive
-            </Button>
-            <Button variant="outline" size="sm" onClick={onClearPositive}>
-              Clear
-            </Button>
-            <Button size="sm" onClick={onShuffle} disabled={disabledActions}>
-              <Shuffle className="mr-2 h-4 w-4" /> Shuffle
+              Generate Prompt ✨
             </Button>
             {onShare && (
-              <Button size="sm" variant="outline" onClick={onShare}>
-                Share
-              </Button>
+              <div className="flex justify-end">
+                <Button size="sm" variant="outline" onClick={onShare} className="border-white/10">
+                  Share
+                </Button>
+              </div>
             )}
           </div>
         </div>

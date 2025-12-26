@@ -56,7 +56,7 @@ export const PromptControls: React.FC<Props> = ({
   }, [isLoggedIn]);
 
   return (
-    <Card className="w-full">
+    <Card className="w-full bg-slate-900/50 backdrop-blur-md border border-white/10">
       <CardHeader>
         <CardTitle className="text-xl">Prompt Controls</CardTitle>
       </CardHeader>
