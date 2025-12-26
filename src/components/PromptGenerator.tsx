@@ -3,36 +3,29 @@
 import * as React from "react";
 import { PromptControls, ControlsState } from "./generator/PromptControls";
 import { PromptDisplay } from "./generator/PromptDisplay";
-import { generatePrompt, type GeneratorConfig } from "@/lib/prompt-engine";
 import { generateNegativePrompt } from "@/lib/prompt-engine";
 import { supabase } from "@/integrations/supabase/client";
 import { showSuccess, showError } from "@/utils/toast";
-import { HistoryList, type HistoryItem } from "./generator/HistoryList";
-import { buildShareUrl, parseControlsFromQuery } from "@/lib/url-state";
+import type { HistoryItem } from "./generator/HistoryList";
+import { buildShareUrl } from "@/lib/url-state";
 import { useSession } from "@/components/auth/SessionProvider";
+import usePromptGenerator from "@/hooks/usePromptGenerator";
 
 function randomSeed() {
   return Math.floor(Math.random() * 1_000_000_000);
 }
 
-export const PromptGenerator: React.FC = () => {
-  const initialControls = React.useMemo(() => {
-    const parsed = parseControlsFromQuery(window.location.search);
-    return {
-      seed: parsed.seed ?? randomSeed(),
-      includeNegative: parsed.includeNegative ?? true,
-      negativeIntensity: parsed.negativeIntensity ?? 1.1,
-      medium: parsed.medium ?? "photo",
-      safeMode: parsed.safeMode ?? true,
-    } as ControlsState;
-  }, []);
+type PromptGeneratorProps = {
+  hideHistory?: boolean;
+};
 
+export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = false }) => {
   const { session } = useSession();
   const userId = session?.user?.id;
 
-  const [controls, setControls] = React.useState<ControlsState>(initialControls);
-  const [positive, setPositive] = React.useState<string>("");
-  const [negative, setNegative] = React.useState<string | undefined>(undefined);
+  // Use the new hook to manage generation state and logic
+  const { controls, setControls, output, generate, randomize } = usePromptGenerator({ userId });
+
   const [history, setHistory] = React.useState<HistoryItem[]>(() => {
     try {
       const raw = localStorage.getItem("generator:history");
@@ -41,8 +34,6 @@ export const PromptGenerator: React.FC = () => {
       return [];
     }
   });
-  const [lastSeed, setLastSeed] = React.useState<number | undefined>(undefined);
-  const [lastContext, setLastContext] = React.useState<{ medium?: any; scenario?: any } | undefined>(undefined);
   const [negPool, setNegPool] = React.useState<string[] | null>(null);
   const [isBanned, setIsBanned] = React.useState<boolean>(false);
   const [favoritesIndex, setFavoritesIndex] = React.useState<Set<string>>(new Set());
@@ -146,6 +137,7 @@ export const PromptGenerator: React.FC = () => {
         setHistory(marked);
         try {
           localStorage.setItem("generator:history", JSON.stringify(marked));
+          window.dispatchEvent(new CustomEvent("generator:history_update"));
         } catch {}
       }
     }
@@ -157,104 +149,61 @@ export const PromptGenerator: React.FC = () => {
     setHistory(next);
     try {
       localStorage.setItem("generator:history", JSON.stringify(next));
+      window.dispatchEvent(new CustomEvent("generator:history_update"));
     } catch {}
   };
 
-  const shuffle = React.useCallback(() => {
+  const handleGenerate = React.useCallback(() => {
     if (isBanned) {
       showError("Your account is banned. Prompt generation is disabled.");
       return;
     }
 
-    if (positive.trim().length > 0) {
+    // Save current output to local history before generating a new one
+    if (output.positive.trim().length > 0) {
       const prevItem: HistoryItem = {
-        id: `${(lastSeed ?? controls.seed)}-${Date.now()}`,
-        positive,
-        negative,
-        seed: lastSeed ?? controls.seed,
+        id: `${controls.seed}-${Date.now()}`,
+        positive: output.positive,
+        negative: output.negative,
+        seed: controls.seed,
         timestamp: Date.now(),
-        favorite: favoritesIndex.has(favKey({ positive, seed: lastSeed ?? controls.seed })),
+        favorite: favoritesIndex.has(favKey({ positive: output.positive, seed: controls.seed })),
       };
       const prevNext = [prevItem, ...history].slice(0, 40);
       saveHistory(prevNext);
 
+      // Cloud history for previous prompt (keeps existing behavior)
       if (userId) {
-        const settings = {
-          seed: prevItem.seed,
+        const configJson = {
           medium: controls.medium,
           includeNegative: controls.includeNegative,
           negativeIntensity: controls.negativeIntensity,
           safeMode: controls.safeMode,
         };
-        supabase.from("generated_prompts").insert({
-          positive_prompt: prevItem.positive,
-          negative_prompt: prevItem.negative ?? null,
-          settings,
+        supabase.from("prompt_history").insert({
+          user_id: userId,
+          positive_text: prevItem.positive,
+          negative_text: prevItem.negative ?? null,
+          seed: prevItem.seed,
+          config_json: configJson,
         });
       }
     }
 
-    const newSeed = randomSeed();
-    const config: GeneratorConfig = {
-      seed: newSeed,
-      includeNegative: controls.includeNegative,
-      negativeIntensity: controls.negativeIntensity,
-      medium: controls.medium,
-      safeMode: controls.safeMode,
-    };
-    const result = generatePrompt(config);
-
-    setControls((c) => ({ ...c, seed: newSeed }));
-    setPositive(result.positive);
-    setNegative(result.negative);
-    setLastSeed(newSeed);
-    setLastContext({ medium: controls.medium, scenario: result.selections.scenario });
-
-    // Save the generated prompt to Supabase when logged in
-    if (userId) {
-      const settings = {
-        seed: newSeed,
-        medium: controls.medium,
-        includeNegative: controls.includeNegative,
-        negativeIntensity: controls.negativeIntensity,
-        safeMode: controls.safeMode,
-      };
-      supabase.from("generated_prompts").insert({
-        positive_prompt: result.positive,
-        negative_prompt: result.negative ?? null,
-        settings,
-      });
-    }
-
+    // Generate new prompt via hook (also saves to generated_prompts if logged in)
+    generate();
     showSuccess("Prompt updated");
-  }, [controls.includeNegative, controls.medium, controls.negativeIntensity, controls.safeMode, history, lastSeed, positive, negative, userId, isBanned, favoritesIndex]);
+  }, [isBanned, output.positive, output.negative, controls.seed, favoritesIndex, history, saveHistory, userId, controls.medium, controls.includeNegative, controls.negativeIntensity, controls.safeMode, generate]);
 
   const onShuffleNegative = () => {
     if (isBanned) {
       showError("Your account is banned. Prompt generation is disabled.");
       return;
     }
-    const nextNeg = generateNegativePrompt(controls.negativeIntensity, negPool || undefined, undefined, lastContext);
-    setNegative(nextNeg);
+    const nextNeg = generateNegativePrompt(controls.negativeIntensity, negPool || undefined, undefined, output.lastContext);
+    output.setNegative(nextNeg);
     showSuccess("Negative updated");
   };
-
-  React.useEffect(() => {
-    const initialSeed = controls.seed;
-    const config: GeneratorConfig = {
-      seed: initialSeed,
-      includeNegative: controls.includeNegative,
-      negativeIntensity: controls.negativeIntensity,
-      medium: controls.medium,
-      safeMode: controls.safeMode,
-    };
-    const result = generatePrompt(config);
-    setPositive(result.positive);
-    setNegative(result.negative);
-    setLastSeed(initialSeed);
-    setLastContext({ medium: controls.medium, scenario: result.selections.scenario });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const onShare = () => {
     const url = buildShareUrl(controls);
@@ -324,21 +273,21 @@ export const PromptGenerator: React.FC = () => {
   };
 
   const randomizeSeed = () => {
-    setControls((c) => ({ ...c, seed: randomSeed() }));
+    randomize();
   };
 
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <PromptDisplay
-          positive={positive}
-          negative={negative}
+          positive={output.positive}
+          negative={output.negative}
           seed={controls.seed}
-          onShuffle={shuffle}
+          onShuffle={handleGenerate}
           onShare={onShare}
-          onPositiveChange={setPositive}
-          onClearPositive={() => setPositive("")}
-          onClearNegative={() => setNegative("")}
+          onPositiveChange={output.setPositive}
+          onClearPositive={output.clearPositive}
+          onClearNegative={output.clearNegative}
           onShuffleNegative={onShuffleNegative}
           disabledActions={isBanned}
           bannerMessage={isBanned ? "Your account is banned. Prompt generation is currently disabled." : undefined}
@@ -347,9 +296,12 @@ export const PromptGenerator: React.FC = () => {
           state={controls}
           onChange={setControls}
           onRandomizeSeed={randomizeSeed}
-          onGenerate={shuffle}
+          onGenerate={handleGenerate}
         />
       </div>
+
+      {/* History list is now handled by the sidebar, so we keep it hidden here */}
+      {hideHistory ? null : null}
     </div>
   );
 };
