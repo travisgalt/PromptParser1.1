@@ -55,73 +55,86 @@ export const PromptDisplay: React.FC<Props> = ({
           </Alert>
         )}
 
-        <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">Positive</p>
-          <div className="relative">
-            <Textarea
-              value={positive}
-              onChange={(e) => onPositiveChange?.(e.target.value)}
-              className="min-h-[140px] text-sm font-mono bg-slate-900/60 border border-white/10 shadow-inner focus-visible:ring-violet-600"
-            />
-            <div className="absolute top-2 right-2 flex items-center gap-1">
+        <div className="flex flex-col border border-white/10 rounded-md overflow-hidden">
+          <div className="w-full flex items-center justify-between p-2 bg-white/5 border-b border-white/10">
+            <p className="text-sm text-muted-foreground">Positive</p>
+            <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-muted-foreground hover:text-foreground hover:bg-white/10"
-                onClick={() => copyText(positive, "Positive prompt")}
-                aria-label="Copy"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-white/10"
+                onClick={() => {
+                  navigator.clipboard.writeText(positive);
+                  showSuccess("Positive prompt copied");
+                }}
+                aria-label="Copy Positive"
               >
                 <Copy className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-muted-foreground hover:text-foreground hover:bg-white/10"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-white/10"
                 onClick={onClearPositive}
-                aria-label="Clear"
+                aria-label="Clear Positive"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           </div>
-
-          {onShare && (
-            <div className="flex justify-end">
-              <Button size="sm" variant="outline" onClick={onShare} className="border-white/10">
-                Share
-              </Button>
-            </div>
-          )}
+          <div className="p-3 max-h-48 overflow-auto">
+            <Textarea
+              value={positive}
+              onChange={(e) => onPositiveChange?.(e.target.value)}
+              className="w-full min-h-[140px] text-sm font-mono bg-slate-900/60 border border-white/10 shadow-inner focus-visible:ring-violet-600"
+            />
+          </div>
         </div>
+
+        {onShare && (
+          <div className="flex justify-end">
+            <Button size="sm" variant="outline" onClick={onShare} className="border-white/10">
+              Share
+            </Button>
+          </div>
+        )}
 
         {negative !== undefined && (
           <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Negative</p>
-            <div className="relative">
-              <div className="min-h-[100px] rounded-md bg-slate-900/60 border border-white/10 p-2 text-sm font-mono">
-                {negative}
+            <div className="flex flex-col border border-white/10 rounded-md overflow-hidden">
+              <div className="w-full flex items-center justify-between p-2 bg-white/5 border-b border-white/10">
+                <p className="text-sm text-muted-foreground">Negative</p>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-white/10"
+                    onClick={() => {
+                      navigator.clipboard.writeText(negative ?? "");
+                      showSuccess("Negative prompt copied");
+                    }}
+                    aria-label="Copy Negative"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-white/10"
+                    onClick={onClearNegative}
+                    aria-label="Clear Negative"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-              <div className="absolute top-2 right-2 flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-white/10"
-                  onClick={() => copyText(negative ?? "", "Negative prompt")}
-                  aria-label="Copy"
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-white/10"
-                  onClick={onClearNegative}
-                  aria-label="Clear"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+              <div className="p-3 max-h-40 overflow-auto">
+                <div className="text-sm font-mono whitespace-pre-wrap">
+                  {negative}
+                </div>
               </div>
             </div>
+
             <div className="flex flex-wrap gap-2">
               <Button size="sm" onClick={onShuffleNegative} disabled={disabledActions}>
                 <Shuffle className="mr-2 h-4 w-4" /> Shuffle Negative
