@@ -55,6 +55,7 @@ export const PromptDisplay: React.FC<Props> = ({
           </Alert>
         )}
 
+        {/* Positive section with header toolbar and body */}
         <div className="flex flex-col border border-white/10 rounded-md overflow-hidden">
           <div className="w-full flex items-center justify-between p-2 bg-white/5 border-b border-white/10">
             <p className="text-sm text-muted-foreground">Positive</p>
@@ -89,18 +90,35 @@ export const PromptDisplay: React.FC<Props> = ({
               className="w-full min-h-[140px] text-sm font-mono bg-slate-900/60 border border-white/10 shadow-inner focus-visible:ring-violet-600"
             />
           </div>
-        </div>
-
-        {onShare && (
-          <div className="flex justify-end">
-            <Button size="sm" variant="outline" onClick={onShare} className="border-white/10">
-              Share
+          {/* Footer toolbar for Positive */}
+          <div className="w-full flex items-center justify-between p-2 bg-white/5 border-t border-white/10">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="hover:bg-white/10"
+              onClick={onShuffle}
+              disabled={disabledActions}
+            >
+              <Shuffle className="mr-2 h-4 w-4" /> Shuffle
             </Button>
+            {onShare ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="hover:bg-white/10"
+                onClick={onShare}
+              >
+                Share
+              </Button>
+            ) : (
+              <div />
+            )}
           </div>
-        )}
+        </div>
 
         {negative !== undefined && (
           <div className="space-y-2">
+            {/* Negative section with header toolbar, body, and footer */}
             <div className="flex flex-col border border-white/10 rounded-md overflow-hidden">
               <div className="w-full flex items-center justify-between p-2 bg-white/5 border-b border-white/10">
                 <p className="text-sm text-muted-foreground">Negative</p>
@@ -133,12 +151,19 @@ export const PromptDisplay: React.FC<Props> = ({
                   {negative}
                 </div>
               </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" onClick={onShuffleNegative} disabled={disabledActions}>
-                <Shuffle className="mr-2 h-4 w-4" /> Shuffle Negative
-              </Button>
+              {/* Footer toolbar for Negative */}
+              <div className="w-full flex items-center justify-between p-2 bg-white/5 border-t border-white/10">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="hover:bg-white/10"
+                  onClick={onShuffleNegative}
+                  disabled={disabledActions}
+                >
+                  <Shuffle className="mr-2 h-4 w-4" /> Shuffle Negative
+                </Button>
+                <div />
+              </div>
             </div>
           </div>
         )}
