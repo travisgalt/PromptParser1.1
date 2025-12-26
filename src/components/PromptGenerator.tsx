@@ -12,6 +12,7 @@ import usePromptGenerator from "@/hooks/usePromptGenerator";
 import useHistory from "@/hooks/useHistory";
 import { generateImage } from "@/lib/forge-api";
 import { models } from "@/lib/model-data";
+import ImageResult from "@/components/ImageResult";
 
 type PromptGeneratorProps = {
   hideHistory?: boolean;
@@ -29,7 +30,8 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
 
   const [negPool, setNegPool] = React.useState<string[] | null>(null);
   const [isBanned, setIsBanned] = React.useState<boolean>(false);
-  const [isGeneratingImage, setIsGeneratingImage] = React.useState(false);
+  const [generatedImage, setGeneratedImage] = React.useState<string | null>(null);
+  const [isGeneratingImg, setIsGeneratingImg] = React.useState(false);
 
   React.useEffect(() => {
     supabase
@@ -124,14 +126,13 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
   }, [isBanned, output.positive, output.negative, controls.seed, favoritesIndex, history, saveHistory, userId, controls.selectedStyle, controls.includeNegative, controls.negativeIntensity, controls.safeMode, generate, saveItem]);
 
   const handleGenerateImage = async () => {
-    setIsGeneratingImage(true);
-    try {
-      const model = models.find((m) => m.id === controls.selectedModelId) ?? models[0];
-      const resp = await generateImage(output.positive, output.negative ?? "", model.filename);
-      // Optionally, you could display resp.images[0] (base64) in the UI; for now we just toast.
-      showSuccess("Image request sent to Local Forge");
-    } finally {
-      setIsGeneratingImage(false);
+    setIsGeneratingImg(true);
+    const model = models.find((m) => m.id === controls.selectedModelId) ?? models[0];
+    const imageData = await generateImage(output.positive, output.negative ?? "", model.filename);
+    setGeneratedImage(imageData || null);
+    setIsGeneratingImg(false);
+    if (imageData) {
+      showSuccess("Image generated");
     }
   };
 
@@ -161,26 +162,30 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <PromptDisplay
-          positive={output.positive}
-          negative={output.negative}
-          seed={controls.seed}
-          onShuffle={handleGenerate}
-          onShare={onShare}
-          onPositiveChange={output.setPositive}
-          onClearPositive={output.clearPositive}
-          onClearNegative={output.clearNegative}
-          onShuffleNegative={onShuffleNegative}
-          disabledActions={isBanned}
-          bannerMessage={isBanned ? "Your account is banned. Prompt generation is currently disabled." : undefined}
-        />
+        <div className="flex flex-col gap-4">
+          <ImageResult imageData={generatedImage} isLoading={isGeneratingImg} />
+          <PromptDisplay
+            positive={output.positive}
+            negative={output.negative}
+            seed={controls.seed}
+            onShuffle={handleGenerate}
+            onShare={onShare}
+            onPositiveChange={output.setPositive}
+            onClearPositive={output.clearPositive}
+            onClearNegative={output.clearNegative}
+            onShuffleNegative={onShuffleNegative}
+            disabledActions={isBanned}
+            bannerMessage={isBanned ? "Your account is banned. Prompt generation is currently disabled." : undefined}
+          />
+        </div>
+
         <PromptControls
           state={controls}
           onChange={setControls}
           onRandomizeSeed={randomizeSeed}
           onGenerate={handleGenerate}
           onGenerateImage={handleGenerateImage}
-          generatingImage={isGeneratingImage}
+          generatingImage={isGeneratingImg}
         />
       </div>
 

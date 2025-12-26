@@ -1,14 +1,8 @@
-export type ForgeResponse = {
-  images: string[];
-  parameters?: Record<string, unknown>;
-  info?: string;
-};
-
 export async function generateImage(
   prompt: string,
   negative_prompt: string,
   modelFilename: string
-): Promise<ForgeResponse> {
+): Promise<string> {
   const res = await fetch("http://127.0.0.1:7860/sdapi/v1/txt2img", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -29,6 +23,6 @@ export async function generateImage(
     throw new Error(`Forge API error: ${res.status} ${res.statusText}`);
   }
 
-  const data = (await res.json()) as ForgeResponse;
-  return data;
+  const data = await res.json() as { images: string[] };
+  return Array.isArray(data.images) && data.images.length > 0 ? data.images[0] : "";
 }
