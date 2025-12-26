@@ -53,8 +53,8 @@ export default function UserSettingsModal({ open, onOpenChange }: Props) {
           <DialogDescription>Manage your account, generator defaults, and subscription.</DialogDescription>
         </DialogHeader>
 
-        {/* Modal body: scrollable area */}
-        <div className="max-h-[70vh] overflow-y-auto p-6">
+        {/* Modal body: scrollable area with padding and spacing */}
+        <div className="max-h-[70vh] overflow-y-auto p-6 space-y-6">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
             <TabsList className="mb-4">
               <TabsTrigger value="account" className="inline-flex items-center gap-2">
@@ -96,7 +96,10 @@ export default function UserSettingsModal({ open, onOpenChange }: Props) {
                 </div>
               </div>
 
-              {/* Account Settings (no theme toggle, no profile navigation) */}
+              {/* Divider before password form */}
+              <hr className="border-white/10" />
+
+              {/* Account Settings form */}
               <AccountSettings />
             </TabsContent>
 

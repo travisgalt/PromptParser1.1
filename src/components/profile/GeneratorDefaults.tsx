@@ -91,10 +91,11 @@ export default function GeneratorDefaults() {
     return <div className="text-sm text-muted-foreground">Please log in to manage your generator preferences.</div>;
   }
 
+  // No internal scrollbar; let modal body handle scrolling
   return (
     <div className="space-y-6">
-      {/* Info Card */}
-      <div className="bg-white/5 border border-white/10 rounded-lg p-6 mb-2">
+      {/* Info Card - full width */}
+      <div className="w-full bg-white/5 border border-white/10 rounded-lg p-6">
         <div className="flex items-start gap-4">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-600/15 border border-violet-600/30">
             <Sparkles className="h-5 w-5 text-violet-400" />
@@ -110,9 +111,9 @@ export default function GeneratorDefaults() {
 
       {/* Model Checkpoint */}
       <div className="space-y-2">
-        <Label>Model Checkpoint</Label>
+        <Label className="text-sm font-medium text-slate-400">Model Checkpoint</Label>
         <Select value={prefs.selectedModelId} onValueChange={(v) => setField("selectedModelId", v)}>
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="w-full bg-slate-900 border-slate-700 text-white">
             <SelectValue placeholder="Select a Model" />
           </SelectTrigger>
           <SelectContent>
@@ -126,17 +127,17 @@ export default function GeneratorDefaults() {
       {/* Dimensions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="width">Width</Label>
+          <Label htmlFor="width" className="text-sm font-medium text-slate-400">Width</Label>
           <div className="flex items-center gap-3">
             <Slider min={512} max={2048} step={8} value={[prefs.width]} onValueChange={(arr) => setField("width", arr[0] ?? prefs.width)} className="flex-1" />
-            <Input id="width" type="number" value={prefs.width} onChange={(e) => setField("width", Number(e.target.value || prefs.width))} className="w-24" />
+            <Input id="width" type="number" value={prefs.width} onChange={(e) => setField("width", Number(e.target.value || prefs.width))} className="w-24 bg-slate-900 border-slate-700 text-white rounded-md focus-visible:ring-2 focus-visible:ring-purple-500" />
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="height">Height</Label>
+          <Label htmlFor="height" className="text-sm font-medium text-slate-400">Height</Label>
           <div className="flex items-center gap-3">
             <Slider min={512} max={2048} step={8} value={[prefs.height]} onValueChange={(arr) => setField("height", arr[0] ?? prefs.height)} className="flex-1" />
-            <Input id="height" type="number" value={prefs.height} onChange={(e) => setField("height", Number(e.target.value || prefs.height))} className="w-24" />
+            <Input id="height" type="number" value={prefs.height} onChange={(e) => setField("height", Number(e.target.value || prefs.height))} className="w-24 bg-slate-900 border-slate-700 text-white rounded-md focus-visible:ring-2 focus-visible:ring-purple-500" />
           </div>
         </div>
       </div>
@@ -144,9 +145,9 @@ export default function GeneratorDefaults() {
       {/* Style & Theme */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Style</Label>
+          <Label className="text-sm font-medium text-slate-400">Style</Label>
           <Select value={prefs.selectedStyle} onValueChange={(v) => setField("selectedStyle", v)}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full bg-slate-900 border-slate-700 text-white">
               <SelectValue placeholder="Select Style" />
             </SelectTrigger>
             <SelectContent>
@@ -157,9 +158,9 @@ export default function GeneratorDefaults() {
           </Select>
         </div>
         <div className="space-y-2">
-          <Label>Theme</Label>
+          <Label className="text-sm font-medium text-slate-400">Theme</Label>
           <Select value={prefs.selectedTheme} onValueChange={(v) => setField("selectedTheme", v)}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full bg-slate-900 border-slate-700 text-white">
               <SelectValue placeholder="Select Theme" />
             </SelectTrigger>
             <SelectContent>
@@ -174,14 +175,14 @@ export default function GeneratorDefaults() {
       {/* Safe Mode */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label>Safe Mode</Label>
+          <Label className="text-sm font-medium text-slate-400">Safe Mode</Label>
           <Switch checked={prefs.safeMode} onCheckedChange={(c) => setField("safeMode", c)} />
         </div>
       </div>
 
       {/* Character Settings */}
       <div className="space-y-4">
-        <Label className="text-base">Character Settings</Label>
+        <Label className="text-base text-slate-300">Character Settings</Label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {speciesList.map((sp) => {
             const id = `species-${sp.replace(/\s+/g, "-")}`;
@@ -194,7 +195,7 @@ export default function GeneratorDefaults() {
                   onCheckedChange={() => toggleSpecies(sp)}
                   className="data-[state=checked]:bg-violet-600 data-[state=checked]:border-violet-600 focus-visible:ring-violet-600"
                 />
-                <Label htmlFor={id} className="capitalize">{sp}</Label>
+                <Label htmlFor={id} className="capitalize text-sm font-medium text-slate-400">{sp}</Label>
               </div>
             );
           })}
@@ -203,12 +204,12 @@ export default function GeneratorDefaults() {
 
       {/* Appearance */}
       <div className="space-y-4">
-        <Label className="text-base">Appearance</Label>
+        <Label className="text-base text-slate-300">Appearance</Label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label>Hair Color</Label>
+            <Label className="text-sm font-medium text-slate-400">Hair Color</Label>
             <Select value={prefs.hairColor} onValueChange={(v) => setField("hairColor", v)}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full bg-slate-900 border-slate-700 text-white">
                 <SelectValue placeholder="Select Hair Color" />
               </SelectTrigger>
               <SelectContent>
@@ -219,9 +220,9 @@ export default function GeneratorDefaults() {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Eye Color</Label>
+            <Label className="text-sm font-medium text-slate-400">Eye Color</Label>
             <Select value={prefs.eyeColor} onValueChange={(v) => setField("eyeColor", v)}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full bg-slate-900 border-slate-700 text-white">
                 <SelectValue placeholder="Select Eye Color" />
               </SelectTrigger>
               <SelectContent>
