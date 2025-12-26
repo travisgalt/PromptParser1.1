@@ -15,6 +15,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Checkbox } from "@/components/ui/checkbox";
+import { speciesList } from "@/lib/prompt-data";
 
 export type ControlsState = {
   seed: number;
@@ -22,6 +24,9 @@ export type ControlsState = {
   negativeIntensity: number;
   medium: "photo" | "render";
   safeMode: boolean;
+  // NEW: category filters
+  selectedSpecies: string[];
+  selectedTheme: "any" | "fantasy" | "modern" | "scifi";
 };
 
 type Props = {
@@ -39,6 +44,13 @@ export const PromptControls: React.FC<Props> = ({
 }) => {
   const setField = <K extends keyof ControlsState>(key: K, value: ControlsState[K]) => {
     onChange({ ...state, [key]: value });
+  };
+
+  const toggleSpecies = (name: string) => {
+    const next = new Set(state.selectedSpecies || []);
+    if (next.has(name)) next.delete(name);
+    else next.add(name);
+    setField("selectedSpecies", Array.from(next));
   };
 
   // NEW: detect login status
@@ -61,6 +73,7 @@ export const PromptControls: React.FC<Props> = ({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Seed */}
           <div className="space-y-2">
             <Label htmlFor="seed">Seed</Label>
             <div className="flex gap-2">
@@ -76,6 +89,7 @@ export const PromptControls: React.FC<Props> = ({
             </div>
           </div>
 
+          {/* Medium */}
           <div className="space-y-2">
             <Label>Medium</Label>
             <RadioGroup
@@ -94,6 +108,57 @@ export const PromptControls: React.FC<Props> = ({
             </RadioGroup>
           </div>
 
+          {/* Character Settings */}
+          <div className="space-y-3 md:col-span-2">
+            <Label className="text-base">Character Settings</Label>
+
+            {/* Species checkboxes */}
+            <div className="flex flex-wrap items-center gap-4">
+              {speciesList.map((sp) => {
+                const checked = (state.selectedSpecies || []).includes(sp);
+                const id = `species-${sp}`;
+                return (
+                  <div key={sp} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={id}
+                      checked={checked}
+                      onCheckedChange={() => toggleSpecies(sp)}
+                    />
+                    <Label htmlFor={id} className="capitalize">{sp}</Label>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Theme selector */}
+            <div className="space-y-2">
+              <Label>Theme</Label>
+              <RadioGroup
+                value={state.selectedTheme}
+                onValueChange={(v) => setField("selectedTheme", v as "any" | "fantasy" | "modern" | "scifi")}
+                className="flex gap-6"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="any" id="theme-any" />
+                  <Label htmlFor="theme-any">Any</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="modern" id="theme-modern" />
+                  <Label htmlFor="theme-modern">Modern</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="fantasy" id="theme-fantasy" />
+                  <Label htmlFor="theme-fantasy">Fantasy</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="scifi" id="theme-scifi" />
+                  <Label htmlFor="theme-scifi">Sci‑Fi</Label>
+                </div>
+              </RadioGroup>
+            </div>
+          </div>
+
+          {/* Include Negative */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex flex-col">
@@ -141,6 +206,7 @@ export const PromptControls: React.FC<Props> = ({
             </div>
           </div>
 
+          {/* Safe Mode */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="safe">Safe Mode</Label>
@@ -161,7 +227,7 @@ export const PromptControls: React.FC<Props> = ({
           <Button
             size="lg"
             onClick={onGenerate}
-            className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-600/30 hover:shadow-indigo-600/40 hover:from-violet-500 hover:to-indigo-500"
+            className="w-full bg-gradient-to-r from violet-600 to-indigo-600 text-white shadow-lg shadow-violet-600/30 hover:shadow-indigo-600/40 hover:from-violet-500 hover:to-indigo-500"
           >
             Generate Prompt ✨
           </Button>

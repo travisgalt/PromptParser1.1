@@ -41,10 +41,10 @@ export function usePromptGenerator(opts?: { userId?: string }) {
       seed: parsed.seed ?? randomSeed(),
       includeNegative: parsed.includeNegative ?? true,
       negativeIntensity: parsed.negativeIntensity ?? 1.1,
-      // Use query value if present, else localStorage preference, else fallback
       medium: (parsed.medium as "photo" | "render" | undefined) ?? prefMedium ?? "photo",
-      // Use query value if present, else localStorage preference, else fallback
       safeMode: (typeof parsed.safeMode === "boolean" ? parsed.safeMode : (prefSafe ?? true)),
+      selectedSpecies: ["human", "elf"],
+      selectedTheme: "any",
     };
   }, []);
 
