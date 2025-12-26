@@ -60,9 +60,14 @@ export const AppHeader: React.FC = () => {
         </Link>
 
         {!session ? (
-          <Button onClick={() => navigate("/login")}>
-            <LogIn className="mr-2 h-4 w-4" /> Login
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => navigate("/signup")}>
+              Sign up
+            </Button>
+            <Button onClick={() => navigate("/login")}>
+              <LogIn className="mr-2 h-4 w-4" /> Login
+            </Button>
+          </div>
         ) : (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

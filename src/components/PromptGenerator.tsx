@@ -61,6 +61,43 @@ export const PromptGenerator: React.FC = () => {
       });
   }, []);
 
+  // One-time sync: upload local history to cloud when first signing in
+  React.useEffect(() => {
+    async function syncLocalHistoryToCloud() {
+      if (!userId) return;
+      const syncedFlag = localStorage.getItem("generator:history_synced");
+      if (syncedFlag === "1") return;
+
+      const localHistRaw = localStorage.getItem("generator:history");
+      const localHist: HistoryItem[] = localHistRaw ? JSON.parse(localHistRaw) : [];
+      if (!localHist.length) {
+        localStorage.setItem("generator:history_synced", "1");
+        return;
+      }
+
+      const rows = localHist.slice(0, 40).map((h) => ({
+        user_id: userId,
+        positive_text: h.positive,
+        negative_text: h.negative ?? null,
+        seed: h.seed ?? null,
+        config_json: {
+          medium: controls.medium,
+          includeNegative: controls.includeNegative,
+          negativeIntensity: controls.negativeIntensity,
+          safeMode: controls.safeMode,
+        },
+      }));
+
+      const { error } = await supabase.from("prompt_history").insert(rows);
+      if (!error) {
+        localStorage.setItem("generator:history_synced", "1");
+        showSuccess("Synced your local history to the cloud");
+      }
+    }
+    syncLocalHistoryToCloud();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
   React.useEffect(() => {
     async function loadUserData() {
       if (!userId) return;
@@ -129,7 +166,6 @@ export const PromptGenerator: React.FC = () => {
       return;
     }
 
-    // Archive current prompt if present
     if (positive.trim().length > 0) {
       const prevItem: HistoryItem = {
         id: `${(lastSeed ?? controls.seed)}-${Date.now()}`,

@@ -8,6 +8,9 @@ import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
 import { ThemeProvider } from "next-themes";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
+import UpdatePassword from "./pages/UpdatePassword";
+import Signup from "./pages/Signup";
 import { SessionProvider } from "@/components/auth/SessionProvider";
 import Admin from "./pages/Admin";
 import AppHeader from "@/components/AppHeader";
@@ -27,6 +30,9 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/update-password" element={<UpdatePassword />} />
               <Route path="/admin" element={<Admin />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
