@@ -13,32 +13,40 @@ import UpdatePassword from "./pages/UpdatePassword";
 import Signup from "./pages/Signup";
 import { SessionProvider } from "@/components/auth/SessionProvider";
 import Admin from "./pages/Admin";
+import AppHeader from "@/components/AppHeader";
+import { DebugProvider } from "@/contexts/DebugContext";
+import DebugPanel from "@/components/admin/DebugPanel";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <SessionProvider>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/update-password" element={<UpdatePassword />} />
-              <Route path="/admin" element={<Admin />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </SessionProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </ThemeProvider>
+    <DebugProvider>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <SessionProvider>
+              <AppHeader />
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/update-password" element={<UpdatePassword />} />
+                <Route path="/admin" element={<Admin />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </SessionProvider>
+          </BrowserRouter>
+          {/* Floating Admin Debug Panel */}
+          <DebugPanel />
+        </TooltipProvider>
+      </ThemeProvider>
+    </DebugProvider>
   </QueryClientProvider>
 );
 
