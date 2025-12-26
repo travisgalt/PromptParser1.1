@@ -30,12 +30,14 @@ type Props = {
   state: ControlsState;
   onChange: (next: ControlsState) => void;
   onRandomizeSeed: () => void;
+  onGenerate: () => void;
 };
 
 export const PromptControls: React.FC<Props> = ({
   state,
   onChange,
   onRandomizeSeed,
+  onGenerate,
 }) => {
   const setField = <K extends keyof ControlsState>(key: K, value: ControlsState[K]) => {
     onChange({ ...state, [key]: value });
@@ -157,6 +159,17 @@ export const PromptControls: React.FC<Props> = ({
               Filters sensitive accessories and tokens
             </span>
           </div>
+        </div>
+
+        {/* Primary action at bottom */}
+        <div className="pt-2">
+          <Button
+            size="lg"
+            onClick={onGenerate}
+            className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-600/30 hover:shadow-indigo-600/40 hover:from-violet-500 hover:to-indigo-500"
+          >
+            Generate Prompt ✨
+          </Button>
         </div>
 
         <div className="flex gap-2">

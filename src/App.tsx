@@ -13,7 +13,6 @@ import UpdatePassword from "./pages/UpdatePassword";
 import Signup from "./pages/Signup";
 import { SessionProvider } from "@/components/auth/SessionProvider";
 import Admin from "./pages/Admin";
-import AppHeader from "@/components/AppHeader";
 
 const queryClient = new QueryClient();
 
@@ -25,7 +24,6 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <SessionProvider>
-            <AppHeader />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/profile" element={<Profile />} />

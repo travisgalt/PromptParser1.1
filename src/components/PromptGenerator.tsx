@@ -349,16 +349,7 @@ export const PromptGenerator: React.FC = () => {
           state={controls}
           onChange={setControls}
           onRandomizeSeed={randomizeSeed}
-        />
-      </div>
-
-      <div className="mt-6">
-        <HistoryList
-          items={history}
-          onCopyPositive={onCopyPositive}
-          onCopyNegative={onCopyNegative}
-          onToggleFavorite={onToggleFavorite}
-          onClear={onClearHistory}
+          onGenerate={shuffle}
         />
       </div>
     </div>
