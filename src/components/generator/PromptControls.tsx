@@ -16,6 +16,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useSession } from "@/components/auth/SessionProvider";
 
 export type ControlsState = {
   seed: number;
@@ -40,6 +41,19 @@ export const PromptControls: React.FC<Props> = ({
     onChange({ ...state, [key]: value });
   };
   const navigate = useNavigate();
+
+  // NEW: detect login status
+  const { session } = useSession();
+  const userId = session?.user?.id;
+  const isLoggedIn = !!userId;
+
+  // NEW: ensure value is 1.0 when not logged in
+  React.useEffect(() => {
+    if (!isLoggedIn && state.negativeIntensity !== 1.0) {
+      onChange({ ...state, negativeIntensity: 1.0 });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn]);
 
   return (
     <Card className="w-full">
@@ -98,6 +112,9 @@ export const PromptControls: React.FC<Props> = ({
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Label>Negative Intensity</Label>
+                {!isLoggedIn && (
+                  <span className="text-xs text-muted-foreground">Login to unlock</span>
+                )}
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -115,11 +132,14 @@ export const PromptControls: React.FC<Props> = ({
                 min={0.8}
                 max={1.4}
                 step={0.05}
-                value={[state.negativeIntensity]}
-                onValueChange={(v) => setField("negativeIntensity", v[0] ?? 1.0)}
+                value={[isLoggedIn ? state.negativeIntensity : 1.0]}
+                onValueChange={(v) => {
+                  if (isLoggedIn) setField("negativeIntensity", v[0] ?? 1.0);
+                }}
+                disabled={!isLoggedIn}
               />
               <div className="text-xs text-muted-foreground">
-                {state.negativeIntensity.toFixed(2)}
+                {(isLoggedIn ? state.negativeIntensity : 1.0).toFixed(2)}
               </div>
             </div>
           </div>
