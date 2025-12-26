@@ -142,22 +142,11 @@ function sanitizePrompt(prompt: string, activeTags: string[]): string {
   const mentionsPointyEars = /pointy ears/i.test(prompt);
   const mentionsHeadphones = /(headphones?|headset|cans)/i.test(prompt);
 
-  // Rules are composable for future constraints
   const rules: Array<{ when: (p: string) => boolean; apply: (p: string) => string }> = [
     {
-      // Elves (or prompts with pointy ears) cannot wear over-ear headphones; convert to in-ear
       when: (p) => (hasElfTag || mentionsPointyEars) && mentionsHeadphones,
-      apply: (p) =>
-        p.replace(/headphones?|headset|cans/gi, () => {
-          // Use 'earbuds' as the default correction; you can swap to 'in-ear monitors' if preferred
-          return "earbuds";
-        }),
+      apply: (p) => p.replace(/headphones?|headset|cans/gi, "earbuds"),
     },
-    // Future rule template (example):
-    // {
-    //   when: (p) => activeTags.some(t => /mermaid/i.test(t)) && /sneakers/i.test(p),
-    //   apply: (p) => p.replace(/sneakers/gi, "bare feet"),
-    // },
   ];
 
   let sanitized = prompt;
@@ -167,6 +156,25 @@ function sanitizePrompt(prompt: string, activeTags: string[]): string {
     }
   }
   return sanitized;
+}
+
+// Species conflict resolution and hybrid handling
+const BASE_SPECIES = ["elf", "dark elf", "orc", "kitsune", "catgirl", "demon"];
+const MODIFIER_SPECIES = ["android", "cyborg", "vampire", "angel"];
+
+function resolveSpeciesConflicts(selectedRaw: string[] | undefined) {
+  const selected = (selectedRaw ?? []).map((s) => s.toLowerCase().trim());
+  const bases = selected.filter((s) => BASE_SPECIES.includes(s));
+  const modifiers = selected.filter((s) => MODIFIER_SPECIES.includes(s));
+  const hasHuman = selected.includes("human");
+
+  // Human Rule: drop 'human' if any exotic base exists
+  let base = bases.length > 0 ? bases[0] : (hasHuman ? "human" : "human");
+
+  // Double Species Rule: keep only the first non-human base (already applied by bases[0])
+  // (Future: consider explicit 'hybrid' composition; for now, drop extras.)
+
+  return { base, modifiers };
 }
 
 function filterByTheme<T extends { themes: ThemeKey[] }>(items: T[], theme: ThemeKey): T[] {
@@ -186,9 +194,11 @@ function banLabels<T extends { label: string }>(items: T[], matchers: RegExp[]):
 export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   const rng = mulberry32(config.seed);
 
-  // NEW: local fallbacks for style/theme
   const style = config.style ?? "photorealistic";
   const theme = config.theme ?? ("any" as ThemeKey);
+
+  // Resolve species and modifiers from user selections before generation
+  const { base: baseSpecies, modifiers } = resolveSpeciesConflicts(config.allowedSpecies);
 
   // Scenario first
   const scenario = pickScenario(rng);
@@ -246,7 +256,7 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   const poseCandidates = poses.filter((p) => !p.requiresPockets || hasPocketsEffective);
   const pose = pickOne(rng, poseCandidates);
 
-  // Accessories: context + time + pose constraints
+  // Accessories pool
   const accPool = accessories.filter((a) => {
     if (config.safeMode && a.nsfwSensitive) return false;
     if (pose.usesHandsInPocket && a.handOccupied) return false;
@@ -257,7 +267,7 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   const accCount = randomInt(rng, 1, 2);
   const acc = pickMany(rng, accPool, accCount);
 
-  // Tech terms based on style (photorealistic vs everything else)
+  // Tech terms based on style
   let tech = style === "photorealistic" ? pickOne(rng, photoTech) : pickOne(rng, renderTech);
 
   // CAMERA LOGIC (Only for photorealistic)
@@ -266,11 +276,9 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
     tech = `${tech}, ${shotType}, ${cameraAngle}, ${lens}`;
   }
 
-  // Identity with species logic
-  const speciesPool = Array.isArray(config.allowedSpecies) && config.allowedSpecies.length ? config.allowedSpecies : ["human"];
-  const species = pickOne(rng, speciesPool);
+  // Identity with species logic (base + hybrid modifiers)
   let speciesTags = "";
-  switch (species) {
+  switch (baseSpecies) {
     case "elf":
       speciesTags = "(elf:1.2), pointy ears";
       break;
@@ -284,13 +292,11 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
       speciesTags = "wings, halo";
       break;
     case "android":
-      speciesTags = "mechanical joints, robotic";
+      // handled as modifier below
+      speciesTags = "";
       break;
-    case "cyborg":
-      speciesTags = "cybernetic implants, mechanical arm";
-      break;
-    case "vampire":
-      speciesTags = "pale skin, red eyes, fangs";
+    case "orc":
+      speciesTags = "green skin, tusks";
       break;
     case "kitsune":
       speciesTags = "fox ears, multiple fox tails";
@@ -298,11 +304,24 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
     case "catgirl":
       speciesTags = "cat ears, tail, nekomimi";
       break;
-    case "orc":
-      speciesTags = "green skin, tusks";
-      break;
     default:
-      speciesTags = "";
+      speciesTags = ""; // human or unspecified
+  }
+
+  // Hybrid modifiers overlay (android/cyborg)
+  if (modifiers.includes("android") || modifiers.includes("cyborg")) {
+    if (baseSpecies === "elf" || baseSpecies === "dark elf") {
+      speciesTags = speciesTags
+        ? `${speciesTags}, mechanical elf, robotic joints, cybernetic ears`
+        : "mechanical elf, robotic joints, cybernetic ears";
+    } else if (baseSpecies === "orc") {
+      speciesTags = speciesTags ? `${speciesTags}, cyber-orc, metal plating` : "cyber-orc, metal plating";
+    } else {
+      // Human or other bases
+      speciesTags = speciesTags
+        ? `${speciesTags}, android, artificial skin, mechanical parts, gynoid`
+        : "android, artificial skin, mechanical parts, gynoid";
+    }
   }
 
   const identity = `1girl, solo${speciesTags ? ", " + speciesTags : ""}, ${body}, ${hair}, ${eyes}, ${expression}, ${pose.label}`;
@@ -317,16 +336,13 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   // Scene
   const scene = `${bg.label}, ${lighting}`;
 
-  // Positive composition (prepend model trigger tags if present via quality variable)
+  // Compose positive and sanitize with active tags (base + modifiers)
   let positive = `${quality}, ${identity}, ${fashion}, ${scene}, ${tech}`;
-
-  // NEW: sanitize the final positive string based on active tags (e.g., species)
-  positive = sanitizePrompt(positive, [species]);
+  positive = sanitizePrompt(positive, [baseSpecies, ...modifiers]);
 
   // Negative
   let negative: string | undefined;
   if (config.includeNegative) {
-    const model = models.find((m) => m.id === config.selectedModelId);
     if (model?.id === "pony-v6" && model.negativeDefault) {
       negative = model.negativeDefault;
     } else {
