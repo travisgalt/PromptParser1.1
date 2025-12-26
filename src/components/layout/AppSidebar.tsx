@@ -27,20 +27,64 @@ import {
 } from "@/components/ui/dialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
-import { Settings } from "lucide-react";
+import { Settings, Lock } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Card, CardHeader as UICardHeader, CardTitle as UICardTitle, CardContent as UICardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
+import { showSuccess } from "@/utils/toast";
 
 const AppSidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { session } = useSession();
   const navigate = useNavigate();
   const [openSettings, setOpenSettings] = React.useState(false);
 
+  const userId = session?.user?.id ?? null;
   const email = session?.user?.email || null;
   const initials = (email || "U").slice(0, 2).toUpperCase();
+  const memberSince = session?.user?.created_at
+    ? new Date(session.user.created_at).toLocaleDateString()
+    : undefined;
+
+  const [promptCount, setPromptCount] = React.useState<number>(0);
+
+  // Preferences (local-only for now)
+  const [prefMedium, setPrefMedium] = React.useState<"photo" | "render">("photo");
+  const [prefSafeMode, setPrefSafeMode] = React.useState<boolean>(true);
+
+  React.useEffect(() => {
+    if (!openSettings) return;
+
+    // Load preferences from localStorage when modal opens
+    const medium = (localStorage.getItem("prefs:default_medium") as "photo" | "render") || "photo";
+    const safe = localStorage.getItem("prefs:safe_mode");
+    setPrefMedium(medium === "render" ? "render" : "photo");
+    setPrefSafeMode(safe === "false" ? false : true);
+
+    // Fetch usage stats (total generated prompts)
+    if (userId) {
+      supabase
+        .from("generated_prompts")
+        .select("*", { count: "exact", head: true })
+        .then(({ count }) => {
+          setPromptCount(typeof count === "number" ? count : 0);
+        });
+    } else {
+      setPromptCount(0);
+    }
+  }, [openSettings, userId]);
 
   const onSignOut = async () => {
     await supabase.auth.signOut();
     setOpenSettings(false);
     navigate("/");
+  };
+
+  const savePreferences = () => {
+    localStorage.setItem("prefs:default_medium", prefMedium);
+    localStorage.setItem("prefs:safe_mode", String(prefSafeMode));
+    showSuccess("Preferences saved");
   };
 
   return (
@@ -83,26 +127,132 @@ const AppSidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               </div>
 
               <Dialog open={openSettings} onOpenChange={setOpenSettings}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="max-w-2xl">
                   <DialogHeader>
-                    <DialogTitle>Profile & Settings</DialogTitle>
-                    <DialogDescription>Manage your account and preferences.</DialogDescription>
+                    <DialogTitle>User Settings</DialogTitle>
+                    <DialogDescription>Manage your account, preferences, and plan.</DialogDescription>
                   </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-9 w-9">
-                        <AvatarImage src={undefined} alt={email || "User"} />
-                        <AvatarFallback>{initials}</AvatarFallback>
-                      </Avatar>
-                      <div className="text-sm">
-                        <div className="font-medium">{email}</div>
-                        <div className="text-muted-foreground">Signed in</div>
-                      </div>
-                    </div>
-                    <div className="rounded-md border border-white/10 p-2 bg-slate-900/40">
-                      <ThemeToggle />
+
+                  {/* User header */}
+                  <div className="flex items-center gap-4 rounded-md border border-white/10 bg-slate-900/40 p-4">
+                    <Avatar className="h-16 w-16">
+                      <AvatarImage src={undefined} alt={email || "User"} />
+                      <AvatarFallback className="text-xl">{initials}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="text-base font-semibold">{email}</div>
+                      {memberSince && (
+                        <div className="text-xs text-muted-foreground">Member Since: {memberSince}</div>
+                      )}
                     </div>
                   </div>
+
+                  {/* Tabs */}
+                  <Tabs defaultValue="overview" className="mt-4">
+                    <TabsList className="w-full justify-start">
+                      <TabsTrigger value="overview">Overview</TabsTrigger>
+                      <TabsTrigger value="preferences">Preferences</TabsTrigger>
+                      <TabsTrigger value="subscription">Subscription</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="overview" className="space-y-4 mt-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Card className="bg-slate-900/50 backdrop-blur-md border border-white/10">
+                          <UICardHeader>
+                            <UICardTitle className="text-sm">Total Prompts Generated</UICardTitle>
+                          </UICardHeader>
+                          <UICardContent>
+                            <div className="text-3xl font-bold">{promptCount}</div>
+                            <div className="text-xs text-muted-foreground">Across all sessions</div>
+                          </UICardContent>
+                        </Card>
+
+                        <Card className="bg-slate-900/50 backdrop-blur-md border border-white/10">
+                          <UICardHeader>
+                            <UICardTitle className="text-sm">Theme</UICardTitle>
+                          </UICardHeader>
+                          <UICardContent>
+                            <div className="rounded-md border border-white/10 p-2 bg-slate-900/40">
+                              <ThemeToggle />
+                            </div>
+                          </UICardContent>
+                        </Card>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="preferences" className="space-y-4 mt-4">
+                      <Card className="bg-slate-900/50 backdrop-blur-md border border-white/10">
+                        <UICardHeader>
+                          <UICardTitle className="text-sm">Default Defaults</UICardTitle>
+                        </UICardHeader>
+                        <UICardContent className="space-y-4">
+                          <div className="space-y-2">
+                            <Label>Default Medium</Label>
+                            <RadioGroup
+                              value={prefMedium}
+                              onValueChange={(v) => setPrefMedium((v as "photo" | "render") || "photo")}
+                              className="flex gap-6"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="photo" id="pref-medium-photo" />
+                                <Label htmlFor="pref-medium-photo">Photo</Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="render" id="pref-medium-render" />
+                                <Label htmlFor="pref-medium-render">Render</Label>
+                              </div>
+                            </RadioGroup>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="pref-safe">Default Safe Mode</Label>
+                              <Switch
+                                id="pref-safe"
+                                checked={prefSafeMode}
+                                onCheckedChange={(c) => setPrefSafeMode(c)}
+                              />
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              Safe mode filters sensitive accessories and tokens by default.
+                            </span>
+                          </div>
+
+                          <div className="flex justify-end">
+                            <Button variant="secondary" onClick={savePreferences}>
+                              Save Preferences
+                            </Button>
+                          </div>
+                        </UICardContent>
+                      </Card>
+                    </TabsContent>
+
+                    <TabsContent value="subscription" className="space-y-4 mt-4">
+                      <Card className="bg-slate-900/50 backdrop-blur-md border border-white/10">
+                        <UICardHeader>
+                          <UICardTitle className="text-sm">Current Plan</UICardTitle>
+                        </UICardHeader>
+                        <UICardContent className="space-y-4">
+                          <div className="text-base font-semibold">Free Tier</div>
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Lock className="h-4 w-4" /> Advanced Negatives
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Lock className="h-4 w-4" /> Cloud Sync
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Lock className="h-4 w-4" /> Priority Support
+                            </div>
+                          </div>
+                          <Button className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-500 hover:to-indigo-500">
+                            Upgrade to Pro
+                          </Button>
+                        </UICardContent>
+                      </Card>
+                    </TabsContent>
+                  </Tabs>
+
                   <DialogFooter className="flex justify-between">
                     <Button variant="outline" onClick={() => { setOpenSettings(false); navigate("/profile"); }}>
                       View Profile
