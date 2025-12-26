@@ -56,8 +56,43 @@ export function useHistory(userId?: string | null) {
       }
     }
     load();
+
+    // Listen for global history updates and reload
+    const handleUpdate = () => {
+      if (userId) {
+        supabase
+          .from("generated_prompts")
+          .select("id, positive_prompt, negative_prompt, settings, created_at")
+          .order("created_at", { ascending: false })
+          .limit(10)
+          .then(({ data }) => {
+            if (!data) return;
+            const items: HistoryItem[] = data.map((row: any) => ({
+              id: row.id,
+              positive: row.positive_prompt,
+              negative: row.negative_prompt || undefined,
+              seed: (row.settings && typeof row.settings.seed === "number") ? row.settings.seed : 0,
+              timestamp: new Date(row.created_at).getTime(),
+              favorite: false,
+            }));
+            setHistory(items);
+          });
+      } else {
+        try {
+          const raw = localStorage.getItem("generator:history");
+          const parsed: HistoryItem[] = raw ? JSON.parse(raw) : [];
+          setHistory(parsed.slice(0, 10));
+        } catch {
+          // ignore
+        }
+      }
+    };
+
+    window.addEventListener("generator:history_update", handleUpdate as EventListener);
+
     return () => {
       mounted = false;
+      window.removeEventListener("generator:history_update", handleUpdate as EventListener);
     };
   }, [userId]);
 
@@ -84,6 +119,8 @@ export function useHistory(userId?: string | null) {
             favorite: false,
           };
           setHistory((prev) => [newItem, ...prev].slice(0, 10));
+          // Broadcast update so other listeners (e.g., sidebar) refresh
+          window.dispatchEvent(new CustomEvent("generator:history_update"));
         }
       } else {
         const newItem: HistoryItem = {
