@@ -15,6 +15,9 @@ import {
 import { useSession } from "@/components/auth/SessionProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { LogIn, LogOut, Shield, User as UserIcon } from "lucide-react";
+import AppHeader from "@/components/AppHeader";
+// import { ThemeToggle } from "@/components/ThemeToggle";
+import UserSettingsModal from "@/components/user/UserSettingsModal";
 
 type ProfileRow = {
   display_name: string | null;
@@ -26,6 +29,7 @@ export const AppHeader: React.FC = () => {
   const { session } = useSession();
   const navigate = useNavigate();
   const [profile, setProfile] = React.useState<ProfileRow | null>(null);
+  const [openSettings, setOpenSettings] = React.useState(false);
 
   React.useEffect(() => {
     const userId = session?.user?.id;
@@ -84,7 +88,7 @@ export const AppHeader: React.FC = () => {
                 {profile?.display_name || session.user.email}
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate("/profile")}>
+              <DropdownMenuItem onClick={() => setOpenSettings(true)}>
                 <UserIcon className="mr-2 h-4 w-4" /> Profile
               </DropdownMenuItem>
               {profile?.is_admin ? (
@@ -100,6 +104,8 @@ export const AppHeader: React.FC = () => {
           </DropdownMenu>
         )}
       </div>
+      {/* User Settings Modal */}
+      <UserSettingsModal open={openSettings} onOpenChange={setOpenSettings} />
     </header>
   );
 };
