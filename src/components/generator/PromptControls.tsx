@@ -73,6 +73,29 @@ export const PromptControls: React.FC<Props> = ({
   const { isPro, isLoading: subLoading } = useSubscription();
   const [showUpgradeModal, setShowUpgradeModal] = React.useState(false);
 
+  // Derived: selected model and filtered styles based on allowedStyles
+  const selectedModel = React.useMemo(
+    () => models.find((m) => m.id === state.selectedModelId),
+    [state.selectedModelId]
+  );
+  const filteredStyles = React.useMemo(() => {
+    if (selectedModel?.allowedStyles && selectedModel.allowedStyles.length > 0) {
+      return stylesList.filter((s) => selectedModel.allowedStyles!.includes(s));
+    }
+    return stylesList;
+  }, [selectedModel?.allowedStyles]);
+
+  // Auto-switch style to the model's defaultStyle when model changes
+  React.useEffect(() => {
+    if (!selectedModel) return;
+    const nextStyle = selectedModel.defaultStyle;
+    // Snap to default immediately to prevent invalid states
+    if (state.selectedStyle !== nextStyle) {
+      setField("selectedStyle", nextStyle);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.selectedModelId]);
+
   return (
     <Card className="w-full bg-slate-900/50 backdrop-blur-md border border-white/10">
       <CardHeader>
@@ -109,7 +132,7 @@ export const PromptControls: React.FC<Props> = ({
                 <SelectValue placeholder="Select a Style" />
               </SelectTrigger>
               <SelectContent>
-                {stylesList.map((s) => (
+                {filteredStyles.map((s) => (
                   <SelectItem key={s} value={s}>
                     {s.replace(/_/g, " ")}
                   </SelectItem>
