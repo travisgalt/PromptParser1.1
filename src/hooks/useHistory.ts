@@ -85,7 +85,6 @@ export function useHistory(userId?: string | null) {
           };
           setHistory((prev) => [newItem, ...prev].slice(0, 40));
         }
-        // No localStorage writes when logged in (strictly Supabase)
       } else {
         const newItem: HistoryItem = {
           id: `${seed}-${Date.now()}`,

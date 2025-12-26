@@ -10,6 +10,8 @@ import { buildShareUrl } from "@/lib/url-state";
 import { useSession } from "@/components/auth/SessionProvider";
 import usePromptGenerator from "@/hooks/usePromptGenerator";
 import useHistory from "@/hooks/useHistory";
+import { generateImage } from "@/lib/forge-api";
+import { models } from "@/lib/model-data";
 
 type PromptGeneratorProps = {
   hideHistory?: boolean;
@@ -27,6 +29,7 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
 
   const [negPool, setNegPool] = React.useState<string[] | null>(null);
   const [isBanned, setIsBanned] = React.useState<boolean>(false);
+  const [isGeneratingImage, setIsGeneratingImage] = React.useState(false);
 
   React.useEffect(() => {
     supabase
@@ -120,6 +123,18 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
     showSuccess("Prompt updated");
   }, [isBanned, output.positive, output.negative, controls.seed, favoritesIndex, history, saveHistory, userId, controls.selectedStyle, controls.includeNegative, controls.negativeIntensity, controls.safeMode, generate, saveItem]);
 
+  const handleGenerateImage = async () => {
+    setIsGeneratingImage(true);
+    try {
+      const model = models.find((m) => m.id === controls.selectedModelId) ?? models[0];
+      const resp = await generateImage(output.positive, output.negative ?? "", model.filename);
+      // Optionally, you could display resp.images[0] (base64) in the UI; for now we just toast.
+      showSuccess("Image request sent to Local Forge");
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
+
   const onShuffleNegative = () => {
     if (isBanned) {
       showError("Your account is banned. Prompt generation is disabled.");
@@ -164,6 +179,8 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
           onChange={setControls}
           onRandomizeSeed={randomizeSeed}
           onGenerate={handleGenerate}
+          onGenerateImage={handleGenerateImage}
+          generatingImage={isGeneratingImage}
         />
       </div>
 

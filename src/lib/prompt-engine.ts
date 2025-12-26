@@ -25,15 +25,17 @@ import {
   type ScenarioKey,
   type ThemeKey,
 } from "./prompt-data";
+import { models } from "./model-data";
 
 export type GeneratorConfig = {
   seed: number;
   includeNegative: boolean;
-  negativeIntensity: number; // e.g. 1.0..1.4
+  negativeIntensity: number;
   safeMode: boolean;
-  allowedSpecies: string[]; // e.g., ['human','elf']
-  theme: ThemeKey; // 'any' | 'fantasy' | 'modern' | ...
-  style: string; // 'photorealistic' | 'anime' | '3d_render' | ...
+  allowedSpecies: string[];
+  theme: ThemeKey;
+  style: string;
+  selectedModelId: string;
 };
 
 export type GeneratedPrompt = {
@@ -156,7 +158,6 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
 
   // Theme-filtered backgrounds + constraints
   let bgPool = filterByTheme(backgrounds, config.theme).filter((b) => matchesScenario(b, scenario));
-
   if (config.theme === "fantasy") {
     bgPool = banLabels(bgPool, [/skyscraper/i]);
   } else if (config.theme === "school_life") {
@@ -164,12 +165,16 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   } else if (config.theme === "cyberpunk") {
     bgPool = prioritize(bgPool, [/neon/i, /rain/i]);
   }
-
   const bg = bgPool.length ? pickOne(rng, bgPool) : pickOne(rng, filterByTheme(backgrounds, config.theme));
   const lighting = deriveLighting(bg, rng);
 
   // Base selections
-  const quality = applyStyleTags(config.style).join(", ");
+  let quality = applyStyleTags(config.style).join(", ");
+  const model = models.find((m) => m.id === config.selectedModelId);
+  if (model?.triggerPrefix) {
+    quality = `${model.triggerPrefix}, ${quality}`;
+  }
+
   const hair = pickOne(rng, hairStyles);
   const eyes = pickOne(rng, eyeColors);
   const body = pickOne(rng, bodyTypes);
@@ -184,14 +189,12 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   } else if (config.theme === "cyberpunk") {
     outfitPool = prioritize(outfitPool, [/techwear/i]);
   }
-
   let outfit = outfitPool.length ? pickOne(rng, outfitPool) : pickOne(rng, filterByTheme(outfits, config.theme));
 
   // Layering adaptation if outfit doesn't fit scenario
   let layeredOuterwear: string | undefined;
   let layeredFootwear: string | undefined;
   let hasPocketsEffective = outfit.hasPockets;
-
   if (!outfit.contextsAllowed.includes(scenario)) {
     const owPool = outerwearItems.filter((ow) => ow.contextsAllowed.includes(scenario));
     const fwPool = footwearItems.filter((fw) => fw.contextsAllowed.includes(scenario));
@@ -262,12 +265,12 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
       speciesTags = "green skin, tusks";
       break;
     default:
-      speciesTags = ""; // human or unknown
+      speciesTags = "";
   }
 
   const identity = `1girl, solo${speciesTags ? ", " + speciesTags : ""}, ${body}, ${hair}, ${eyes}, ${expression}, ${pose.label}`;
 
-  // Fashion composition (outfit + optional layering + accessories)
+  // Fashion composition
   const fashionParts: string[] = [outfit.label];
   if (layeredOuterwear) fashionParts.push(layeredOuterwear);
   if (layeredFootwear) fashionParts.push(layeredFootwear);
@@ -277,24 +280,22 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   // Scene
   const scene = `${bg.label}, ${lighting}`;
 
-  // Positive composition
+  // Positive composition (prepend model trigger tags if present via quality variable)
   const positive = `${quality}, ${identity}, ${fashion}, ${scene}, ${tech}`;
 
-  // Negative (map style to a photo/render hint for legacy negative logic)
-  const mediumForContext: Medium | undefined =
-    config.style === "photorealistic" ? "photo" :
-    config.style === "3d_render" ? "render" :
-    undefined;
-
-  const negative =
-    config.includeNegative
-      ? generateNegativePrompt(
-          config.negativeIntensity,
-          undefined,
-          config.seed,
-          { medium: mediumForContext, scenario }
-        )
-      : undefined;
+  // Negative
+  let negative: string | undefined;
+  if (config.includeNegative) {
+    if (model?.id === "pony-v6" && model.negativeDefault) {
+      negative = model.negativeDefault;
+    } else {
+      const mediumForContext =
+        config.style === "photorealistic" ? "photo" :
+        config.style === "3d_render" ? "render" :
+        undefined;
+      negative = generateNegativePrompt(config.negativeIntensity, undefined, config.seed, { medium: mediumForContext as Medium | undefined, scenario });
+    }
+  }
 
   return {
     positive,

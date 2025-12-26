@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useSession } from "@/components/auth/SessionProvider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { speciesList, stylesList, themesList } from "@/lib/prompt-data";
+import { models } from "@/lib/model-data";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 export type ControlsState = {
@@ -21,7 +22,8 @@ export type ControlsState = {
   safeMode: boolean;
   selectedSpecies: string[];
   selectedTheme: "any" | "fantasy" | "modern" | "scifi" | "cyberpunk" | "steampunk" | "post_apocalyptic" | "horror_gothic" | "noir" | "school_life";
-  selectedStyle: string; // e.g., 'photorealistic', 'anime', ...
+  selectedStyle: string;
+  selectedModelId: string; // NEW: model checkpoint id
 };
 
 type Props = {
@@ -29,6 +31,8 @@ type Props = {
   onChange: (next: ControlsState) => void;
   onRandomizeSeed: () => void;
   onGenerate: () => void;
+  onGenerateImage: () => void; // NEW
+  generatingImage?: boolean; // NEW
 };
 
 export const PromptControls: React.FC<Props> = ({
@@ -36,6 +40,8 @@ export const PromptControls: React.FC<Props> = ({
   onChange,
   onRandomizeSeed,
   onGenerate,
+  onGenerateImage,
+  generatingImage = false,
 }) => {
   const setField = <K extends keyof ControlsState>(key: K, value: ControlsState[K]) => {
     onChange({ ...state, [key]: value });
@@ -67,6 +73,26 @@ export const PromptControls: React.FC<Props> = ({
         <CardTitle className="text-xl">Prompt Controls</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Model Checkpoint at the very top */}
+        <div className="space-y-2">
+          <Label>Model Checkpoint</Label>
+          <Select
+            value={state.selectedModelId}
+            onValueChange={(v) => setField("selectedModelId", v)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a Model" />
+            </SelectTrigger>
+            <SelectContent>
+              {models.map((m) => (
+                <SelectItem key={m.id} value={m.id}>
+                  {m.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Top row: Style and Theme side-by-side */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Style Select */}
@@ -104,7 +130,7 @@ export const PromptControls: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* Seed input moved below */}
+        {/* Seed & Safe Mode */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="seed">Seed</Label>
@@ -121,7 +147,6 @@ export const PromptControls: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* Safe Mode */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="safe">Safe Mode</Label>
@@ -211,14 +236,23 @@ export const PromptControls: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* Primary action */}
-        <div className="pt-2">
+        {/* Primary & Forge actions */}
+        <div className="pt-2 space-y-2">
           <Button
             size="lg"
             onClick={onGenerate}
             className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-600/30 hover:from-violet-500 hover:to-indigo-500 hover:shadow-indigo-600/40"
           >
             Generate Prompt ✨
+          </Button>
+
+          <Button
+            variant="ghost"
+            onClick={onGenerateImage}
+            disabled={generatingImage}
+            className="w-full hover:bg-white/10"
+          >
+            {generatingImage ? "Generating..." : "Generate Image (Local Forge)"}
           </Button>
         </div>
       </CardContent>

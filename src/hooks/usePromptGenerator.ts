@@ -38,6 +38,7 @@ export function usePromptGenerator(opts?: { userId?: string }) {
       selectedSpecies: ["human", "elf"],
       selectedTheme: "any",
       selectedStyle: "photorealistic",
+      selectedModelId: "standard",
     };
   }, []);
 
@@ -57,6 +58,7 @@ export function usePromptGenerator(opts?: { userId?: string }) {
       allowedSpecies: controls.selectedSpecies,
       theme: controls.selectedTheme,
       style: controls.selectedStyle,
+      selectedModelId: controls.selectedModelId,
     };
     const result = generatePrompt(config);
     setPositive(result.positive);
@@ -80,6 +82,7 @@ export function usePromptGenerator(opts?: { userId?: string }) {
       allowedSpecies: controls.selectedSpecies,
       theme: controls.selectedTheme,
       style: controls.selectedStyle,
+      selectedModelId: controls.selectedModelId,
     };
     const result = generatePrompt(config);
 
