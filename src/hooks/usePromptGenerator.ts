@@ -13,7 +13,7 @@ type OutputState = {
   positive: string;
   negative?: string;
   seed: number;
-  lastContext?: { medium?: any; scenario?: any };
+  lastContext?: { style?: string; scenario?: any };
   setPositive: (text: string) => void;
   setNegative: (text: string | undefined) => void;
   clearPositive: () => void;
@@ -72,17 +72,19 @@ export function usePromptGenerator(opts?: { userId?: string }) {
     setControls((c) => ({ ...c, seed: randomSeed() }));
   }, []);
 
-  const generate = React.useCallback(() => {
+  // UPDATED: accept current controls to avoid stale closures
+  const generate = React.useCallback((next?: ControlsState) => {
+    const cur = next ?? controls;
     const newSeed = randomSeed();
     const config = {
       seed: newSeed,
-      includeNegative: controls.includeNegative,
-      negativeIntensity: controls.negativeIntensity,
-      safeMode: controls.safeMode,
-      allowedSpecies: controls.selectedSpecies,
-      theme: controls.selectedTheme,
-      style: controls.selectedStyle,
-      selectedModelId: controls.selectedModelId,
+      includeNegative: cur.includeNegative,
+      negativeIntensity: cur.negativeIntensity,
+      safeMode: cur.safeMode,
+      allowedSpecies: cur.selectedSpecies,
+      theme: cur.selectedTheme,
+      style: cur.selectedStyle,
+      selectedModelId: cur.selectedModelId,
     };
     const result = generatePrompt(config);
 
@@ -90,7 +92,7 @@ export function usePromptGenerator(opts?: { userId?: string }) {
     setPositive(result.positive);
     setNegative(result.negative);
     setLastSeed(newSeed);
-    setLastContext({ style: controls.selectedStyle, scenario: result.selections.scenario });
+    setLastContext({ style: cur.selectedStyle, scenario: result.selections.scenario });
 
     return { positive: result.positive, negative: result.negative, seed: newSeed };
   }, [controls]);

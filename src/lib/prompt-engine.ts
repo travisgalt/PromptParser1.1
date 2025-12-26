@@ -153,23 +153,27 @@ function banLabels<T extends { label: string }>(items: T[], matchers: RegExp[]):
 export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   const rng = mulberry32(config.seed);
 
+  // NEW: local fallbacks for style/theme
+  const style = config.style ?? "photorealistic";
+  const theme = config.theme ?? ("any" as ThemeKey);
+
   // Scenario first
   const scenario = pickScenario(rng);
 
   // Theme-filtered backgrounds + constraints
-  let bgPool = filterByTheme(backgrounds, config.theme).filter((b) => matchesScenario(b, scenario));
-  if (config.theme === "fantasy") {
+  let bgPool = filterByTheme(backgrounds, theme).filter((b) => matchesScenario(b, scenario));
+  if (theme === "fantasy") {
     bgPool = banLabels(bgPool, [/skyscraper/i]);
-  } else if (config.theme === "school_life") {
+  } else if (theme === "school_life") {
     bgPool = prioritize(bgPool, [/classroom/i]);
-  } else if (config.theme === "cyberpunk") {
+  } else if (theme === "cyberpunk") {
     bgPool = prioritize(bgPool, [/neon/i, /rain/i]);
   }
-  const bg = bgPool.length ? pickOne(rng, bgPool) : pickOne(rng, filterByTheme(backgrounds, config.theme));
+  const bg = bgPool.length ? pickOne(rng, bgPool) : pickOne(rng, filterByTheme(backgrounds, theme));
   const lighting = deriveLighting(bg, rng);
 
   // Base selections
-  let quality = applyStyleTags(config.style).join(", ");
+  let quality = applyStyleTags(style).join(", ");
   const model = models.find((m) => m.id === config.selectedModelId);
   if (model?.triggerPrefix) {
     quality = `${model.triggerPrefix}, ${quality}`;
@@ -181,15 +185,15 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   const expression = pickExpression(scenario, rng);
 
   // Theme-filtered outfits + constraints
-  let outfitPool = filterByTheme(outfits, config.theme).filter((o) => o.contextsAllowed.includes(scenario));
-  if (config.theme === "fantasy") {
+  let outfitPool = filterByTheme(outfits, theme).filter((o) => o.contextsAllowed.includes(scenario));
+  if (theme === "fantasy") {
     outfitPool = banLabels(outfitPool, [/hoodie/i]);
-  } else if (config.theme === "school_life") {
+  } else if (theme === "school_life") {
     outfitPool = prioritize(outfitPool, [/uniform/i]);
-  } else if (config.theme === "cyberpunk") {
+  } else if (theme === "cyberpunk") {
     outfitPool = prioritize(outfitPool, [/techwear/i]);
   }
-  let outfit = outfitPool.length ? pickOne(rng, outfitPool) : pickOne(rng, filterByTheme(outfits, config.theme));
+  let outfit = outfitPool.length ? pickOne(rng, outfitPool) : pickOne(rng, filterByTheme(outfits, theme));
 
   // Layering adaptation if outfit doesn't fit scenario
   let layeredOuterwear: string | undefined;
@@ -221,10 +225,10 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   const acc = pickMany(rng, accPool, accCount);
 
   // Tech terms based on style (photorealistic vs everything else)
-  let tech = config.style === "photorealistic" ? pickOne(rng, photoTech) : pickOne(rng, renderTech);
+  let tech = style === "photorealistic" ? pickOne(rng, photoTech) : pickOne(rng, renderTech);
 
   // CAMERA LOGIC (Only for photorealistic)
-  const { shotType, cameraAngle, lens } = pickCameraLogic(config.style, pose, rng);
+  const { shotType, cameraAngle, lens } = pickCameraLogic(style, pose, rng);
   if (shotType && cameraAngle && lens) {
     tech = `${tech}, ${shotType}, ${cameraAngle}, ${lens}`;
   }
@@ -290,10 +294,15 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
       negative = model.negativeDefault;
     } else {
       const mediumForContext =
-        config.style === "photorealistic" ? "photo" :
-        config.style === "3d_render" ? "render" :
+        style === "photorealistic" ? "photo" :
+        style === "3d_render" ? "render" :
         undefined;
-      negative = generateNegativePrompt(config.negativeIntensity, undefined, config.seed, { medium: mediumForContext as Medium | undefined, scenario });
+      negative = generateNegativePrompt(
+        config.negativeIntensity,
+        undefined,
+        config.seed,
+        { medium: mediumForContext as Medium | undefined, scenario }
+      );
     }
   }
 

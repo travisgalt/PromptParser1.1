@@ -106,7 +106,8 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
       }
     }
 
-    const result = generate();
+    // UPDATED: pass current controls to generate() to avoid staleness
+    const result = generate(controls);
     const settings = {
       seed: result.seed,
       style: controls.selectedStyle,
@@ -123,7 +124,7 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
     });
 
     showSuccess("Prompt updated");
-  }, [isBanned, output.positive, output.negative, controls.seed, favoritesIndex, history, saveHistory, userId, controls.selectedStyle, controls.includeNegative, controls.negativeIntensity, controls.safeMode, generate, saveItem]);
+  }, [isBanned, output.positive, output.negative, controls, favoritesIndex, history, saveHistory, userId, generate, saveItem]);
 
   const handleGenerateImage = async () => {
     setIsGeneratingImg(true);
