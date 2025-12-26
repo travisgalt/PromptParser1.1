@@ -57,16 +57,17 @@ const AppSidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (!openSettings) return;
 
     // Load preferences from localStorage when modal opens
-    const medium = (localStorage.getItem("prefs:default_medium") as "photo" | "render") || "photo";
-    const safe = localStorage.getItem("prefs:safe_mode");
+    const medium = (localStorage.getItem("pref_default_medium") as "photo" | "render") || "photo";
+    const safe = localStorage.getItem("pref_default_safemode");
     setPrefMedium(medium === "render" ? "render" : "photo");
     setPrefSafeMode(safe === "false" ? false : true);
 
-    // Fetch usage stats (total generated prompts)
+    // Fetch usage stats (total generated prompts) for this user
     if (userId) {
       supabase
         .from("generated_prompts")
         .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
         .then(({ count }) => {
           setPromptCount(typeof count === "number" ? count : 0);
         });
@@ -79,12 +80,6 @@ const AppSidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     await supabase.auth.signOut();
     setOpenSettings(false);
     navigate("/");
-  };
-
-  const savePreferences = () => {
-    localStorage.setItem("prefs:default_medium", prefMedium);
-    localStorage.setItem("prefs:safe_mode", String(prefSafeMode));
-    showSuccess("Preferences saved");
   };
 
   return (
@@ -190,7 +185,11 @@ const AppSidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                             <Label>Default Medium</Label>
                             <RadioGroup
                               value={prefMedium}
-                              onValueChange={(v) => setPrefMedium((v as "photo" | "render") || "photo")}
+                              onValueChange={(v) => {
+                                const next = (v as "photo" | "render") || "photo";
+                                setPrefMedium(next);
+                                localStorage.setItem("pref_default_medium", next);
+                              }}
                               className="flex gap-6"
                             >
                               <div className="flex items-center space-x-2">
@@ -210,18 +209,15 @@ const AppSidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                               <Switch
                                 id="pref-safe"
                                 checked={prefSafeMode}
-                                onCheckedChange={(c) => setPrefSafeMode(c)}
+                                onCheckedChange={(c) => {
+                                  setPrefSafeMode(c);
+                                  localStorage.setItem("pref_default_safemode", String(c));
+                                }}
                               />
                             </div>
                             <span className="text-xs text-muted-foreground">
                               Safe mode filters sensitive accessories and tokens by default.
                             </span>
-                          </div>
-
-                          <div className="flex justify-end">
-                            <Button variant="secondary" onClick={savePreferences}>
-                              Save Preferences
-                            </Button>
                           </div>
                         </UICardContent>
                       </Card>
