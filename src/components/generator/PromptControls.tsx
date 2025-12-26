@@ -227,7 +227,7 @@ export const PromptControls: React.FC<Props> = ({
           <Button
             size="lg"
             onClick={onGenerate}
-            className="w-full bg-gradient-to-r from violet-600 to-indigo-600 text-white shadow-lg shadow-violet-600/30 hover:shadow-indigo-600/40 hover:from-violet-500 hover:to-indigo-500"
+            className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-600/30 hover:from-violet-500 hover:to-indigo-500 hover:shadow-indigo-600/40"
           >
             Generate Prompt ✨
           </Button>
