@@ -179,18 +179,17 @@ export const PromptGenerator: React.FC = () => {
       saveHistory(prevNext);
 
       if (userId) {
-        const configJson = {
+        const settings = {
+          seed: prevItem.seed,
           medium: controls.medium,
           includeNegative: controls.includeNegative,
           negativeIntensity: controls.negativeIntensity,
           safeMode: controls.safeMode,
         };
-        supabase.from("prompt_history").insert({
-          user_id: userId,
-          positive_text: prevItem.positive,
-          negative_text: prevItem.negative ?? null,
-          seed: prevItem.seed,
-          config_json: configJson,
+        supabase.from("generated_prompts").insert({
+          positive_prompt: prevItem.positive,
+          negative_prompt: prevItem.negative ?? null,
+          settings,
         });
       }
     }
@@ -211,7 +210,7 @@ export const PromptGenerator: React.FC = () => {
     setLastSeed(newSeed);
     setLastContext({ medium: controls.medium, scenario: result.selections.scenario });
 
-    // NEW: Save generated prompt to Supabase when logged in
+    // Save the generated prompt to Supabase when logged in
     if (userId) {
       const settings = {
         seed: newSeed,
@@ -221,7 +220,6 @@ export const PromptGenerator: React.FC = () => {
         safeMode: controls.safeMode,
       };
       supabase.from("generated_prompts").insert({
-        user_id: userId,
         positive_prompt: result.positive,
         negative_prompt: result.negative ?? null,
         settings,
