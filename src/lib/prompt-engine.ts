@@ -31,6 +31,8 @@ export type GeneratorConfig = {
   negativeIntensity: number; // e.g. 1.0..1.4
   medium: Medium; // photo or render
   safeMode: boolean;
+  allowedSpecies: string[]; // NEW: species filter (e.g., ['human','elf'])
+  theme: string; // NEW: 'any' | 'fantasy' | 'modern' | 'scifi'
 };
 
 export type GeneratedPrompt = {
@@ -123,9 +125,13 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   // Scenario first
   const scenario = pickScenario(rng);
 
-  // Background according to scenario
-  const bgCandidates = backgrounds.filter((b) => matchesScenario(b, scenario));
-  const bg = bgCandidates.length ? pickOne(rng, bgCandidates) : pickOne(rng, backgrounds);
+  // Background filtered by theme and scenario
+  const themeBgPool =
+    config.theme === "any"
+      ? backgrounds
+      : backgrounds.filter((b) => b.theme === "any" || b.theme === config.theme);
+  const bgCandidates = themeBgPool.filter((b) => matchesScenario(b, scenario));
+  const bg = bgCandidates.length ? pickOne(rng, bgCandidates) : pickOne(rng, themeBgPool);
   const lighting = deriveLighting(bg, rng);
 
   // Base selections
@@ -135,9 +141,13 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   const body = pickOne(rng, bodyTypes);
   const expression = pickExpression(scenario, rng);
 
-  // Outfit gated by scenario
-  const validOutfits = outfits.filter((o) => o.contextsAllowed.includes(scenario));
-  let outfit = validOutfits.length ? pickOne(rng, validOutfits) : pickOne(rng, outfits);
+  // Outfit filtered by theme and gated by scenario
+  const themeOutfits =
+    config.theme === "any"
+      ? outfits
+      : outfits.filter((o) => o.theme === "any" || o.theme === config.theme);
+  const validOutfits = themeOutfits.filter((o) => o.contextsAllowed.includes(scenario));
+  let outfit = validOutfits.length ? pickOne(rng, validOutfits) : pickOne(rng, themeOutfits);
 
   // Layering adaptation if outfit doesn't fit scenario
   let layeredOuterwear: string | undefined;
@@ -175,12 +185,18 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   // --- CAMERA LOGIC (Only for Photo) ---
   const { shotType, cameraAngle, lens } = pickCameraLogic(config.medium, pose, rng);
   if (shotType && cameraAngle && lens) {
-    // Append camera details to tech block or create a new block
     tech = `${tech}, ${shotType}, ${cameraAngle}, ${lens}`;
   }
 
-  // Identity
-  const identity = `1girl, solo, (elf:1.2), pointy ears, ${body}, ${hair}, ${eyes}, ${expression}, ${pose.label}`;
+  // Identity with species logic
+  const speciesPool =
+    Array.isArray(config.allowedSpecies) && config.allowedSpecies.length
+      ? config.allowedSpecies
+      : ["human"];
+  const species = pickOne(rng, speciesPool);
+  const speciesTags = species === "elf" ? "(elf:1.2), pointy ears" : "";
+
+  const identity = `1girl, solo${speciesTags ? ", " + speciesTags : ""}, ${body}, ${hair}, ${eyes}, ${expression}, ${pose.label}`;
 
   // Fashion composition (outfit + optional layering + accessories)
   const fashionParts: string[] = [outfit.label];

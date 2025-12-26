@@ -62,6 +62,8 @@ export function usePromptGenerator(opts?: { userId?: string }) {
       negativeIntensity: controls.negativeIntensity,
       medium: controls.medium,
       safeMode: controls.safeMode,
+      allowedSpecies: controls.selectedSpecies,
+      theme: controls.selectedTheme,
     };
     const result = generatePrompt(config);
     setPositive(result.positive);
@@ -83,6 +85,8 @@ export function usePromptGenerator(opts?: { userId?: string }) {
       negativeIntensity: controls.negativeIntensity,
       medium: controls.medium,
       safeMode: controls.safeMode,
+      allowedSpecies: controls.selectedSpecies,
+      theme: controls.selectedTheme,
     };
     const result = generatePrompt(config);
 
@@ -92,7 +96,6 @@ export function usePromptGenerator(opts?: { userId?: string }) {
     setLastSeed(newSeed);
     setLastContext({ medium: controls.medium, scenario: result.selections.scenario });
 
-    // RETURN the generated values so caller can persist via useHistory
     return { positive: result.positive, negative: result.negative, seed: newSeed };
   }, [controls]);
 
