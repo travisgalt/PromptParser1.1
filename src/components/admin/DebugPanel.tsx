@@ -13,14 +13,15 @@ const DebugPanel: React.FC = () => {
   const { overridePro, simulateDelay, maintenanceMode, setOverridePro, setSimulateDelay, setMaintenanceMode, resetAll } = useDebug();
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <div className="fixed bottom-6 right-6 z-50">
       {!open ? (
         <button
-          className="rounded-full p-3 bg-slate-900/80 border border-red-500/60 shadow-md hover:opacity-90 opacity-60"
+          className="w-14 h-14 rounded-full bg-amber-500 border-2 border-white shadow-xl shadow-amber-500/20 flex items-center justify-center hover:opacity-90"
           onClick={() => setOpen(true)}
           aria-label="Open Debug Panel"
+          title="Developer Tools"
         >
-          <Bug className="h-5 w-5 text-red-400" />
+          <Bug className="h-6 w-6 text-black" />
         </button>
       ) : (
         <Card className="w-80 bg-slate-900/95 border-2 border-red-500/60 shadow-xl rounded-lg">
