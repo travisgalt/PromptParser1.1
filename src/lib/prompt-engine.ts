@@ -66,6 +66,12 @@ function norm(s: string) {
   return s.toLowerCase().trim();
 }
 
+// NEW: Detect swimwear domain from selected tags (bikini, swimsuit, monokini)
+function isSwimwearSelection(tags: string[]): boolean {
+  const lower = tags.map(norm);
+  return lower.some((t) => /bikini|swimsuit|monokini/.test(t));
+}
+
 // ADDED: pick avoiding recent selections with graceful fallback
 function pickAvoiding<T extends string | { label: string }>(
   rng: RNG,
@@ -528,6 +534,12 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   // MERGED: include theme positive tags with user extra tags
   const extra = [...(config.extraTags ?? []).map(norm), ...(config.themeTags?.positive ?? []).map(norm)];
 
+  // NEW: Pull user clothing selections for context rules
+  const userTopSel = extra.filter((t) => TOP_TAGS.has(t));
+  const userBottomSel = extra.filter((t) => BOTTOM_TAGS.has(t));
+  const userFullBodySel = extra.filter((t) => FULL_BODY_TAGS.has(t));
+  const swimwearDomain = isSwimwearSelection([...userTopSel, ...userBottomSel, ...userFullBodySel]);
+
   const { base: baseSpecies, modifiers } = resolveSpeciesConflicts(config.allowedSpecies);
 
   const scenario = pickScenario(rng);
@@ -539,6 +551,11 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
     bgPool = prioritize(bgPool, [/classroom/i]);
   } else if (theme === "cyberpunk") {
     bgPool = prioritize(bgPool, [/neon/i, /rain/i]);
+  }
+  // NEW: Swimwear domain should favor beach/ocean; fallback to simple studio
+  if (swimwearDomain) {
+    const favored = prioritize(bgPool, [/beach/i, /ocean/i]);
+    bgPool = favored.length ? favored : prioritize(filterByTheme(backgrounds, theme), [/simple background/i, /studio/i]);
   }
 
   const userBgTag = extra.find((t) => LOCATION_TAGS.has(t) || SIMPLE_BG_TAGS.has(t));
@@ -607,6 +624,7 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
     basePoseLabel: "",
   });
 
+  // NEW: If user provided explicit clothing (top/bottom/full-body), prefer a minimal domain outfit and avoid adding incompatible random layers
   let outfitPool = filterByTheme(outfits, theme).filter((o) => o.contextsAllowed.includes(scenario));
   if (theme === "fantasy") {
     outfitPool = banLabels(outfitPool, [/hoodie/i]);
@@ -615,13 +633,31 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   } else if (theme === "cyberpunk") {
     outfitPool = prioritize(outfitPool, [/techwear/i]);
   }
+
   const avoidOutfit = new Set((recent.outfit ?? []).map(norm));
-  let outfit = outfitPool.length ? pickAvoiding(rng, outfitPool, avoidOutfit, (x) => x.label) : pickAvoiding(rng, filterByTheme(outfits, theme), avoidOutfit, (x) => x.label);
+
+  let outfit: OutfitItem;
+  if (swimwearDomain) {
+    // Force a minimal swimwear outfit to avoid hoodies/jackets layering
+    outfit = {
+      label: "swimwear set",
+      hasPockets: false,
+      contextsAllowed: ["outdoor_public_day", "indoor_private", "studio"],
+      themes: ["modern", "any"],
+    } as OutfitItem;
+  } else {
+    outfit =
+      outfitPool.length
+        ? pickAvoiding(rng, outfitPool, avoidOutfit, (x) => x.label)
+        : pickAvoiding(rng, filterByTheme(outfits, theme), avoidOutfit, (x) => x.label);
+  }
 
   let layeredOuterwear: string | undefined;
   let layeredFootwear: string | undefined;
   let hasPocketsEffective = outfit.hasPockets;
-  if (!outfit.contextsAllowed.includes(scenario)) {
+
+  // NEW: Do not layer outerwear/footwear in swimwear domain
+  if (!swimwearDomain && !outfit.contextsAllowed.includes(scenario)) {
     const owPool = outerwearItems.filter((ow) => ow.contextsAllowed.includes(scenario));
     const fwPool = footwearItems.filter((fw) => fw.contextsAllowed.includes(scenario));
     const selectedOw = owPool.length ? pickAvoiding(rng, owPool, undefined, (x) => x.label) : undefined;
@@ -629,6 +665,10 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
     layeredOuterwear = selectedOw?.label;
     layeredFootwear = selectedFw?.label;
     hasPocketsEffective = hasPocketsEffective || !!selectedOw?.hasPockets;
+  } else if (swimwearDomain) {
+    layeredOuterwear = undefined;
+    layeredFootwear = undefined;
+    hasPocketsEffective = false;
   }
 
   const noPocketCoverage = new Set(["lingerie","negligee","bikini","sheer fabric","lace lingerie","silk robe"]);
@@ -641,14 +681,19 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   const avoidPose = new Set((recent.pose ?? []).map(norm));
   const pose = pickAvoiding(rng, poseCandidates, avoidPose, (x) => x.label);
 
-  const accPool = accessories.filter((a) => {
+  // Accessories: filter out heavy/implausible ones for swimwear
+  let accPool = accessories.filter((a) => {
     if (config.safeMode && a.nsfwSensitive) return false;
     if (pose.usesHandsInPocket && a.handOccupied) return false;
     if (a.contextsAllowed && !a.contextsAllowed.includes(scenario)) return false;
     if (a.allowedTimes && bg.timeOfDay && !a.allowedTimes.includes(bg.timeOfDay)) return false;
     return true;
   });
-  const accCount = randomInt(rng, 1, 2);
+  if (swimwearDomain) {
+    accPool = accPool.filter((a) => !/backpack|tote/i.test(a.label));
+  }
+
+  const accCount = swimwearDomain ? 1 : randomInt(rng, 1, 2);
   const recentAccSet = new Set((recent.accessories ?? []).map(norm));
   const accFiltered = accPool.filter((a) => !recentAccSet.has(norm(a.label)));
   const accPickPool = accFiltered.length >= accCount ? accFiltered : accPool;
@@ -711,7 +756,15 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
 
   const identity = `1girl, solo${speciesTags ? ", " + speciesTags : ""}${hairColorTag ? ", " + hairColorTag : ""}${eyeColorTag ? ", " + eyeColorTag : ""}, ${body}, ${hairStyle}, ${expression}, ${pose.label}`;
 
-  const fashionParts: string[] = [outfit.label];
+  // NEW: Build fashion parts from user clothing selections to respect intent
+  const fashionParts: string[] = [];
+  if (userFullBodySel.length) fashionParts.push(...userFullBodySel);
+  if (userTopSel.length) fashionParts.push(...userTopSel);
+  if (userBottomSel.length) fashionParts.push(...userBottomSel);
+
+  // Keep minimal outfit label unless user provided explicit clothing
+  if (!fashionParts.length) fashionParts.push(outfit.label);
+
   if (layeredOuterwear) fashionParts.push(layeredOuterwear);
   if (layeredFootwear) fashionParts.push(layeredFootwear);
   if (acc.length) fashionParts.push(...acc.map((a) => a.label));
@@ -737,6 +790,11 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
 
   let negative: string | undefined;
   const extraNegatives = negativesForLocks(userBodyTag);
+  // NEW: Dynamic negatives for swimwear to prevent heavy clothing layers
+  const dynamicNegatives: string[] = swimwearDomain
+    ? ["hoodie", "coat", "leather jacket", "blazer", "sweater", "leggings", "backpack", "tote bag"]
+    : [];
+
   if (config.includeNegative) {
     if (model?.id === "pony-v6" && model.negativeDefault) {
       negative = model.negativeDefault;
@@ -754,8 +812,9 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
       // NEW: add theme-provided negative tags, weighted by intensity
       const themeNegExtras = (config.themeTags?.negative ?? []).map((n) => `(${n}:${config.negativeIntensity.toFixed(2)})`);
       const bodyLockExtras = extraNegatives.map((n) => `(${n}:${config.negativeIntensity.toFixed(2)})`);
+      const dynamicNegExtras = dynamicNegatives.map((n) => `(${n}:${config.negativeIntensity.toFixed(2)})`);
 
-      const extrasStr = [...bodyLockExtras, ...themeNegExtras].join(", ");
+      const extrasStr = [...bodyLockExtras, ...themeNegExtras, ...dynamicNegExtras].join(", ");
       if (extrasStr.length) {
         negative = `${baseNeg}, ${extrasStr}`;
       } else {
