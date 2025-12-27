@@ -15,6 +15,7 @@ import { useSession } from "@/components/auth/SessionProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { showSuccess, showError } from "@/utils/toast";
 import { models } from "@/lib/model-data";
+import StylesManager from "@/components/admin/StylesManager";
 
 // Types
 type ProfileRow = {
@@ -425,129 +426,8 @@ export default function Admin() {
             <CardHeader>
               <CardTitle>Styles Catalog</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Create new style */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="style-slug">Slug</Label>
-                  <Input id="style-slug" value={newStyle.slug || ""} onChange={(e) => setNewStyle({ ...newStyle, slug: e.target.value.trim() })} placeholder="e.g., cel_shaded" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="style-label">Label</Label>
-                  <Input id="style-label" value={newStyle.label || ""} onChange={(e) => setNewStyle({ ...newStyle, label: e.target.value })} placeholder="Display name" />
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="style-desc">Description</Label>
-                  <Input id="style-desc" value={(newStyle.description as string) || ""} onChange={(e) => setNewStyle({ ...newStyle, description: e.target.value })} placeholder="Optional" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="style-cat">Category</Label>
-                  <Input id="style-cat" value={(newStyle.category as string) || ""} onChange={(e) => setNewStyle({ ...newStyle, category: e.target.value })} placeholder="e.g., illustration / 3d / photo" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="style-sort">Sort Order</Label>
-                  <Input id="style-sort" type="number" value={Number(newStyle.sort_order || 0)} onChange={(e) => setNewStyle({ ...newStyle, sort_order: Number(e.target.value || 0) })} />
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label>Compatible Models</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {models.map((m) => {
-                      const selected = (newStyle.compatible_models || []).includes(m.id);
-                      return (
-                        <Button
-                          key={m.id}
-                          variant={selected ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => {
-                            const set = new Set(newStyle.compatible_models || []);
-                            if (selected) set.delete(m.id); else set.add(m.id);
-                            setNewStyle({ ...newStyle, compatible_models: Array.from(set) });
-                          }}
-                        >
-                          {m.name}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="style-tags">Tag Mapping (JSON)</Label>
-                  <textarea
-                    id="style-tags"
-                    className="w-full min-h-[120px] rounded-md border border-white/10 bg-slate-900/60 p-2 text-sm text-slate-200"
-                    placeholder='e.g., {"positive":["cel shaded","flat color"],"negative":[]}'
-                    value={newStyle.tag_mapping ? JSON.stringify(newStyle.tag_mapping) : ""}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      try {
-                        const parsed = v.trim() ? JSON.parse(v) : null;
-                        setNewStyle({ ...newStyle, tag_mapping: parsed });
-                      } catch {
-                        // Keep raw text to allow editing; make it null on invalid JSON
-                        setNewStyle({ ...newStyle, tag_mapping: null });
-                      }
-                    }}
-                  />
-                  <div className="text-xs text-muted-foreground">
-                    Provide structured tags that the engine can use. Positive/negative arrays are typical.
-                  </div>
-                </div>
-                <div className="md:col-span-2">
-                  <div className="flex items-center justify-between">
-                    <Label>Enabled</Label>
-                    <Switch checked={!!newStyle.enabled} onCheckedChange={(c) => setNewStyle({ ...newStyle, enabled: c })} />
-                  </div>
-                </div>
-              </div>
-              <Button onClick={createStyle}>Create Style</Button>
-
-              <Separator className="my-6" />
-
-              {/* Styles list */}
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Label</TableHead>
-                    <TableHead>Slug</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Sort</TableHead>
-                    <TableHead>Enabled</TableHead>
-                    <TableHead>Compatible Models</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {styles.map((s) => (
-                    <TableRow key={s.id}>
-                      <TableCell className="text-sm">{s.label}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{s.slug}</TableCell>
-                      <TableCell className="text-sm">{s.category || "-"}</TableCell>
-                      <TableCell className="w-24">
-                        <Input
-                          type="number"
-                          value={s.sort_order}
-                          onChange={(e) => updateStyle(s.id, { sort_order: Number(e.target.value || s.sort_order) })}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Switch checked={s.enabled} onCheckedChange={(c) => toggleStyleEnabled(s.id, c)} />
-                      </TableCell>
-                      <TableCell className="max-w-[240px]">
-                        <div className="flex flex-wrap gap-1">
-                          {s.compatible_models.map((mid) => {
-                            const m = models.find((x) => x.id === mid);
-                            return <Badge key={mid} variant="secondary">{m ? m.name : mid}</Badge>;
-                          })}
-                        </div>
-                      </TableCell>
-                      <TableCell className="space-x-2">
-                        <Button size="sm" variant="outline" onClick={() => updateStyle(s.id, { label: s.label + "" })}>Save</Button>
-                        <Button size="sm" variant="destructive" onClick={() => deleteStyle(s.id)}>Delete</Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <CardContent className="space-y-4">
+              <StylesManager />
             </CardContent>
           </Card>
         </TabsContent>
