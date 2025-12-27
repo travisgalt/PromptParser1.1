@@ -4,77 +4,83 @@ export type PromptCategoryDef = {
 };
 
 export const defaultCategories: PromptCategoryDef[] = [
-  // ADDED: SPECIES & RACE (first category)
+  // --- PRIORITY 1: QUALITY ---
   {
-    name: "Species & Race",
-    tags: ["Human", "Elf", "Dark Elf", "Demon", "Angel", "Android", "Cyborg", "Vampire", "Kitsune", "Catgirl", "Orc"]
+    name: "Quality Boosters",
+    tags: ["masterpiece", "best quality", "absurdres", "8k", "highly detailed", "sharp focus", "HDR", "intricate details", "hyperdetailed", "perfect anatomy", "distinct features"]
   },
 
-  // --- CHARACTER CORE ---
+  // --- PRIORITY 2: SUBJECT CORE ---
+  {
+    name: "Species & Race",
+    tags: ["human", "elf", "dark elf", "half-elf", "demon", "succubus", "angel", "android", "cyborg", "mecha musume", "vampire", "kitsune", "catgirl", "wolf girl", "rabbit girl", "dragon girl", "orc", "goblin", "fairy", "ghost"]
+  },
   {
     name: "Body Type",
-    tags: ["athletic", "curvy", "petite", "muscular", "slender", "voluptuous", "tall", "chibi"]
+    tags: ["athletic", "muscular", "toned", "curvy", "voluptuous", "plump", "thick thighs", "petite", "slender", "lanky", "tall", "short", "giantess", "chibi"]
   },
   {
     name: "Skin & Details",
-    tags: ["pale skin", "tan skin", "dark skin", "freckles", "scars", "tattoos", "makeup", "glistening skin", "oiled skin", "blush"]
+    tags: ["pale skin", "fair skin", "tan skin", "dark skin", "brown skin", "freckles", "scars", "facial mark", "beauty mark", "mole under eye", "tattoos", "tribal tattoos", "bioluminescent skin", "glistening skin", "oiled skin", "sweaty", "blush", "stickers on face", "bandaid on nose"]
   },
+
+  // --- PRIORITY 3: APPEARANCE ---
   {
     name: "Hair Style",
-    tags: ["long hair", "short hair", "bob cut", "pixie cut", "ponytail", "twintails", "messy hair", "braids", "wavy hair", "drills", "ahoge"]
+    tags: ["long hair", "very long hair", "short hair", "medium hair", "bob cut", "pixie cut", "hime cut", "blunt bangs", "ponytail", "high ponytail", "side ponytail", "twintails", "low twintails", "braids", "french braid", "crown braid", "messy hair", "wavy hair", "curly hair", "drill hair", "ahoge", "hair bun", "double bun", "hair over one eye", "bald"]
   },
   {
     name: "Hair Color",
-    tags: ["blonde", "black hair", "brown hair", "red hair", "white hair", "silver hair", "pink hair", "blue hair", "purple hair", "green hair", "multicolored hair", "gradient hair"]
+    tags: ["blonde", "platinum blonde", "black hair", "brown hair", "light brown hair", "red hair", "ginger hair", "white hair", "silver hair", "grey hair", "pastel pink hair", "blue hair", "purple hair", "green hair", "multicolored hair", "two-tone hair", "gradient hair", "streaked hair"]
   },
   {
     name: "Eyes",
-    tags: ["blue eyes", "green eyes", "brown eyes", "red eyes", "purple eyes", "yellow eyes", "amber eyes", "grey eyes", "heterochromia", "glowing eyes", "tsurime", "tareme", "closed eyes"]
+    tags: ["blue eyes", "red eyes", "green eyes", "amber eyes", "purple eyes", "yellow eyes", "pink eyes", "heterochromia", "glowing eyes", "tsurime", "tareme", "sanpaku", "heart-shaped pupils", "star-shaped pupils", "slit pupils", "no pupils", "closed eyes", "wink"]
   },
   {
     name: "Expression",
-    tags: ["smiling", "smug", "embarrassed", "angry", "expressionless", "yandere", "blushing", "crying", "surprised", "parted lips"]
+    tags: ["smiling", "grin", "smug", "laughing", "embarrassed", "angry", "frowning", "pout", "expressionless", "yandere", "crazy", "ahegao", "blushing", "crying", "tearing up", "surprised", "scared", "nervous", "parted lips", "tongue out"]
   },
 
-  // --- APPAREL ---
+  // --- PRIORITY 4: APPAREL ---
   {
     name: "Outfit - Top",
-    tags: ["hoodie", "t-shirt", "oversized shirt", "crop top", "sweater", "tank top", "armored plate", "kimono", "school uniform", "leather jacket"]
+    tags: ["hoodie", "oversized hoodie", "t-shirt", "graphic tee", "crop top", "tube top", "sweater", "turtle neck", "tank top", "camisole", "dress shirt", "blouse", "corset", "bikini top", "sports bra", "armored plate", "kimono", "yukata", "school uniform", "serafuku", "blazer", "leather jacket", "denim jacket", "coat", "lab coat", "maid apron"]
   },
   {
     name: "Outfit - Bottom",
-    tags: ["jeans", "pleated skirt", "pencil skirt", "leggings", "shorts", "yoga pants", "cargo pants", "thighhighs", "pantyhose"]
+    tags: ["jeans", "skinny jeans", "ripped jeans", "pleated skirt", "miniskirt", "pencil skirt", "long skirt", "leggings", "yoga pants", "shorts", "dolphin shorts", "cargo pants", "track pants", "sweatpants", "bikini bottom", "panties", "thong", "no pants"]
+  },
+  {
+    name: "Legwear & Footwear",
+    tags: ["thighhighs", "kneehighs", "pantyhose", "fishnets", "white socks", "black socks", "bobby socks", "loose socks", "sneakers", "high heels", "boots", "combat boots", "knee boots", "loafers", "barefoot"]
   },
   {
     name: "Accessories",
-    tags: ["glasses", "sunglasses", "choker", "cat ears", "halo", "horns", "mechanical wings", "headphones", "jewelry", "mask"]
+    tags: ["glasses", "sunglasses", "monocle", "goggles", "eyepatch", "choker", "collar", "necklace", "pendant", "earrings", "piercings", "navel piercing", "cat ears", "animal ears", "halo", "horns", "demon horns", "mechanical wings", "angel wings", "bat wings", "headphones", "jewelry", "mask", "gas mask", "fox mask", "ribbon", "hair flower", "hair ornament", "hat", "cap", "beret", "beanie", "witch hat"]
   },
 
-  // --- BACKGROUNDS & ENVIRONMENT ---
+  // --- PRIORITY 5: POSE & CAMERA ---
   {
-    name: "Background - Simple & Abstract",
-    tags: ["simple background", "white background", "black background", "solid color", "two-tone background", "gradient background", "abstract background", "geometric pattern", "polka dots", "blurred background", "bokeh", "minimalist"]
+    name: "Pose (Mutually Exclusive)",
+    tags: ["standing", "sitting", "squatting", "kneeling", "lying down", "on stomach", "on back", "running", "walking", "jumping", "flying", "floating", "fighting stance", "reaching out", "arms crossed", "hands on hips", "peace sign", "selfie pose", "looking back", "looking over shoulder"]
   },
   {
+    name: "Camera & Framing",
+    tags: ["cowboy shot", "upper body", "full body", "close-up", "portrait", "face focus", "dutch angle", "from below", "from above", "overhead shot", "wide angle", "fisheye", "depth of field", "bokeh"]
+  },
+
+  // --- PRIORITY 6: ENVIRONMENT ---
+  {
     name: "Location - Detailed",
-    tags: ["cyberpunk city", "fantasy forest", "bedroom", "cafe", "classroom", "ruins", "beach", "outer space", "dungeon", "library", "street corner"]
+    tags: ["cyberpunk city", "neon city", "fantasy forest", "enchanted forest", "bedroom", "messy bedroom", "cafe", "classroom", "ruins", "castle", "beach", "ocean", "outer space", "spaceship", "dungeon", "library", "street corner", "alleyway", "rooftop", "bar", "nightclub", "onsen", "simple background"]
+  },
+  {
+    name: "Background - Simple",
+    tags: ["white background", "black background", "grey background", "solid color", "two-tone background", "gradient background", "abstract background", "geometric pattern", "polka dots", "speed lines"]
   },
   {
     name: "Lighting",
-    tags: ["cinematic lighting", "natural light", "volumetric lighting", "neon lights", "rim lighting", "sunset", "golden hour", "dark and moody", "god rays", "studio lighting", "soft lighting"]
-  },
-
-  // --- STYLE & QUALITY ---
-  {
-    name: "Camera & Framing",
-    tags: ["cowboy shot", "upper body", "full body", "close-up", "portrait", "dutch angle", "from below", "from above", "wide angle", "fisheye"]
-  },
-  {
-    name: "Art Style",
-    tags: ["anime", "realistic", "semi-realistic", "oil painting", "sketch", "lineart", "cel shaded", "digital art", "pixel art", "watercolor", "flat color"]
-  },
-  {
-    name: "Quality Boosters",
-    tags: ["masterpiece", "best quality", "highres", "8k", "highly detailed", "sharp focus", "HDR", "absurdres"]
+    tags: ["cinematic lighting", "natural light", "volumetric lighting", "neon lights", "rim lighting", "backlighting", "sunset", "golden hour", "dark and moody", "god rays", "studio lighting", "soft lighting", "hard shadows", "bioluminescent light"]
   }
 ];
