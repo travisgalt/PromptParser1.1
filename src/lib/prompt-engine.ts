@@ -56,6 +56,14 @@ const CORE_HAIR_COLOR_TAGS = new Set(["blonde","black hair","brown hair","red ha
 const CORE_EYE_TAGS = new Set(["blue eyes","red eyes","green eyes","heterochromia","glowing eyes","tsurime","tareme","closed eyes"]);
 const CORE_EXPRESSION_TAGS = new Set(["smiling","smug","embarrassed","angry","expressionless","yandere","blushing","crying","surprised","parted lips"]);
 
+// ADDED: Skin & Details set
+const SKIN_TAGS = new Set(["pale skin","tan skin","dark skin","freckles","scars","tattoos","makeup","glistening skin","oiled skin","blush"]);
+
+// ADDED: Apparel sets (tops, bottoms, accessories)
+const TOP_TAGS = new Set(["hoodie","t-shirt","oversized shirt","crop top","sweater","tank top","armored plate","kimono","school uniform","leather jacket"]);
+const BOTTOM_TAGS = new Set(["jeans","pleated skirt","pencil skirt","leggings","shorts","yoga pants","cargo pants","thighhighs","pantyhose"]);
+const ACCESSORY_TAGS = new Set(["glasses","sunglasses","choker","cat ears","halo","horns","mechanical wings","headphones","jewelry","mask"]);
+
 const CAMERA_TAGS = new Set(["cowboy shot","upper body","full body","close-up","portrait","dutch angle","from below","from above","wide angle","fisheye"]);
 const ART_STYLE_TAGS = new Set(["anime","realistic","semi-realistic","oil painting","sketch","lineart","cel shaded","digital art","pixel art","watercolor","flat color"]);
 const QUALITY_TAGS_SET = new Set(["masterpiece","best quality","highres","8k","highly detailed","sharp focus","hdr","absurdres"]);
@@ -508,7 +516,7 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   // Tech terms based on style
   let tech = style === "photorealistic" ? pickOne(rng, photoTech) : pickOne(rng, renderTech);
 
-  // CAMERA LOGIC override based on user tags (Only for photorealistic lens guidance)
+  // Camera overrides
   let { shotType, cameraAngle, lens } = pickCameraLogic(style, pose, rng);
   const shotOverride = matchShotOverride(extra.filter((t) => CAMERA_TAGS.has(t)));
   const angleOverride = matchAngleOverride(extra.filter((t) => CAMERA_TAGS.has(t)));
@@ -564,35 +572,84 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
     }
   }
 
-  // ADJUSTED: Place hair/eye color early after character/species tags
-  const identity = `1girl, solo${speciesTags ? ", " + speciesTags : ""}${hairColorTag ? ", " + hairColorTag : ""}${eyeColorTag ? ", " + eyeColorTag : ""}, ${body}, ${hairStyle}, ${expression}, ${pose.label}`;
+  // Build strict ordered sections
 
-  // Fashion composition + include NSFW coverage and user apparel selections (avoid duplicates)
+  // 1) Quality Boosters (highest priority) + style tags
+  const nsfwIntent = selectedNSFW.find((t) => t.category === "intent")?.label;
+  const qualitySection = `${nsfwIntent ? nsfwIntent + ", " : ""}${quality}`;
+
+  // 2) Species & Race (core subject definition)
+  const subjectSection = `1girl, solo${speciesTags ? ", " + speciesTags : ""}`;
+
+  // 3) Body Type
+  const bodySection = body;
+
+  // 4) Skin & Details (from extra tags)
+  const skinSection = extra.filter((t) => SKIN_TAGS.has(t)).join(", ");
+
+  // 5) Appearance Core (Hair Style, Hair Color, Eyes, Expression)
+  const appearanceParts: string[] = [];
+  if (hairStyle) appearanceParts.push(hairStyle);
+  if (hairColorTag) appearanceParts.push(hairColorTag);
+  if (eyeColorTag) appearanceParts.push(eyeColorTag);
+  if (expression) appearanceParts.push(expression);
+  const appearanceSection = appearanceParts.join(", ");
+
+  // 6) Apparel (Outfit - Top, Bottom, Accessories): engine outfit + layers + accessories + user-selected apparel tags
   const fashionParts: string[] = [outfit.label];
   if (layeredOuterwear) fashionParts.push(layeredOuterwear);
   if (layeredFootwear) fashionParts.push(layeredFootwear);
   if (acc.length) fashionParts.push(...acc.map((a) => a.label));
+  // coverage tokens integrate with fashion
   selectedNSFW.filter((t) => t.category === "coverage").forEach((t) => fashionParts.push(t.label));
+  // user-selected apparel additions (avoid duplicates)
+  const apparelExtras = extra.filter((t) => TOP_TAGS.has(t) || BOTTOM_TAGS.has(t) || ACCESSORY_TAGS.has(t));
+  apparelExtras.forEach((t) => {
+    if (!fashionParts.some((p) => norm(p) === t)) fashionParts.push(t);
+  });
+  const apparelSection = fashionParts.join(", ");
 
-  // Append remaining user tags that are not already expressed in core identity (avoid duplicates)
-  const coreUsed = new Set<string>([
-    norm(body),
-    norm(hairStyle),
-    norm(hairColorTag),
-    norm(eyeColorTag),
-    norm(expression),
-  ]);
-  const extraClean = extra.filter((t) => !coreUsed.has(t));
-  const userTagsStr = extraClean.length ? extraClean.join(", ") : "";
+  // 7) Pose / Camera
+  const poseCameraParts: string[] = [pose.label];
+  if (shotOverride) poseCameraParts.push(shotOverride);
+  if (angleOverride) poseCameraParts.push(angleOverride);
+  const poseCameraSection = poseCameraParts.join(", ");
 
-  // Scene (append optional nsfw location/lighting descriptors and user overrides already applied above)
+  // 8) Environment (Location Detailed, Background Simple, Lighting)
+  const envParts: string[] = [];
+  // Use chosen background and lighting; append NSFW location/light if present
+  envParts.push(bg.label);
   const nsfwLocation = selectedNSFW.find((t) => t.category === "location")?.label;
+  if (nsfwLocation) envParts.push(nsfwLocation);
+  envParts.push(lighting);
   const nsfwLight = selectedNSFW.find((t) => t.category === "lighting")?.label;
-  const scene = `${bg.label}${nsfwLocation ? ", " + nsfwLocation : ""}, ${lighting}${nsfwLight ? ", " + nsfwLight : ""}`;
+  if (nsfwLight) envParts.push(nsfwLight);
+  // Include simple background tags if selected
+  const simpleBgExtras = extra.filter((t) => SIMPLE_BG_TAGS.has(t));
+  envParts.push(...simpleBgExtras);
+  const environmentSection = envParts.join(", ");
 
-  // Compose positive and sanitize
-  const nsfwIntent = selectedNSFW.find((t) => t.category === "intent")?.label;
-  let positive = `${nsfwIntent ? nsfwIntent + ", " : ""}${quality}, ${identity}${userTagsStr ? ", " + userTagsStr : ""}, ${fashionParts.join(", ")}, ${scene}, ${tech}`;
+  // 9) Art Style (lowest priority)
+  const artStyleSection = extra.filter((t) => ART_STYLE_TAGS.has(t)).join(", ");
+
+  // Tech terms (lens info already appended into tech above)
+  const techSection = tech;
+
+  // Final prompt assembly in strict order, ensuring comma separators
+  const sections = [
+    qualitySection,
+    subjectSection,
+    bodySection,
+    skinSection,
+    appearanceSection,
+    apparelSection,
+    poseCameraSection,
+    environmentSection,
+    artStyleSection,
+    techSection,
+  ].filter((s) => s && s.length > 0);
+
+  let positive = sections.join(", ");
   positive = sanitizePrompt(positive, [baseSpecies, ...modifiers]);
 
   // Negative with optional opposites for hard-locked body type
