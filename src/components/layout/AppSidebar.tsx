@@ -216,12 +216,13 @@ const AppSidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                         <TabsTrigger value="subscription">Subscription</TabsTrigger>
                       </div>
 
+                      {/* Clean actions: no container bg/borders/dividers */}
                       <div className="flex items-center gap-2">
                         {isAdmin && (
                           <button
                             type="button"
                             onClick={() => { setOpenSettings(false); navigate("/admin"); }}
-                            className="inline-flex items-center gap-2 px-3 py-2 rounded-md border transition bg-transparent text-foreground hover:bg-white/5 border-white/10"
+                            className="inline-flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:underline"
                           >
                             <Shield className="h-4 w-4" />
                             <span>Admin</span>
@@ -230,7 +231,7 @@ const AppSidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                         <button
                           type="button"
                           onClick={() => { setOpenSettings(false); navigate("/profile"); }}
-                          className="inline-flex items-center gap-2 px-3 py-2 rounded-md border transition bg-transparent text-foreground hover:bg-white/5 border-white/10"
+                          className="inline-flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:underline"
                         >
                           <UserIcon className="h-4 w-4" />
                           <span>View Profile</span>
@@ -238,7 +239,7 @@ const AppSidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                         <button
                           type="button"
                           onClick={onSignOut}
-                          className="inline-flex items-center gap-2 px-3 py-2 rounded-md border transition bg-transparent text-foreground hover:bg-white/5 border-white/10"
+                          className="inline-flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:underline"
                         >
                           <LogOut className="h-4 w-4" />
                           <span>Sign Out</span>
