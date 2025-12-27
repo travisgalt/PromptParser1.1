@@ -38,7 +38,7 @@ export async function generateImage(
   console.log("Forge API request URL:", fullUrl);
 
   try {
-    const resp = await fetch(url, {
+    const resp = await fetch(fullUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -55,7 +55,7 @@ export async function generateImage(
         delete payload.alwayson_scripts;
 
         console.log("Forge API retry URL:", fullUrl);
-        const retryResp = await fetch(url, {
+        const retryResp = await fetch(fullUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -87,7 +87,7 @@ export async function generateImage(
 
       console.log("Forge API retry URL (catch):", fullUrl);
       try {
-        const retryResp = await fetch(url, {
+        const retryResp = await fetch(fullUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
