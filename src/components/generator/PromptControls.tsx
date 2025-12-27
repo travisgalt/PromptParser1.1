@@ -309,13 +309,15 @@ export const PromptControls: React.FC<Props> = ({
                 <AccordionItem key={cat.name} value={cat.name} className="rounded-lg">
                   <AccordionTrigger
                     className={cn(
-                      "px-3 py-2 rounded-md border text-sm bg-slate-800/60 text-slate-200",
+                      "px-3 py-2 rounded-md border bg-slate-800/60 text-slate-200 text-sm",
                       "hover:bg-slate-800/80",
                       isActive ? "border-violet-600/50 shadow-[0_0_0_1px_rgba(139,92,246,0.35)]" : "border-white/10"
                     )}
                   >
                     <div className="flex items-center justify-between w-full">
-                      <span className="truncate">{cat.name}</span>
+                      <span className="whitespace-normal break-words text-sm leading-tight">
+                        {cat.name}
+                      </span>
                       <Badge className="bg-slate-800/40 text-slate-400 border border-slate-700">
                         {count}
                       </Badge>
@@ -403,7 +405,7 @@ export const PromptControls: React.FC<Props> = ({
           <Button
             size="lg"
             onClick={onGenerate}
-            className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-600/30 hover:from-violet-500 hover:to-indigo-500 hover:shadow-indigo-600/40"
+            className="mt-4 w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-600/30 hover:from-violet-500 hover:to-indigo-500 hover:shadow-indigo-600/40"
           >
             Generate Prompt ✨
           </Button>
