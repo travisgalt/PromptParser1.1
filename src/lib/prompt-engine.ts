@@ -233,26 +233,35 @@ function applyStyleTags(style: string): string[] {
     case "photorealistic":
       styleTags = ["raw photo", "photorealistic", "realistic texture", "skin texture", "film grain"];
       break;
+    case "hyperrealistic":
+      styleTags = ["hyperrealistic", "extreme detail", "lifelike textures"];
+      break;
     case "anime":
       styleTags = ["source_anime", "flat color", "2d", "illustration"];
       break;
+    case "manga":
+      styleTags = ["manga", "screentone", "black and white"];
+      break;
+    case "manhwa":
+      styleTags = ["manhwa", "webtoon style", "clean line art"];
+      break;
+    case "cel_shaded":
+      styleTags = ["cel shaded", "toon shading", "flat color"];
+      break;
     case "3d_render":
       styleTags = ["3d", "octane render", "cgi", "unreal engine 5", "raytracing"];
+      break;
+    case "octane_render":
+      styleTags = ["octane render", "physically based rendering"];
+      break;
+    case "unreal_engine_5":
+      styleTags = ["unreal engine 5", "high fidelity", "global illumination"];
       break;
     case "digital_painting":
       styleTags = ["digital art", "concept art", "matte painting"];
       break;
     case "oil_painting":
       styleTags = ["oil painting", "brush strokes", "canvas texture"];
-      break;
-    case "pixel_art":
-      styleTags = ["pixel art", "16-bit", "retro game style"];
-      break;
-    case "comic_book":
-      styleTags = ["comic book", "halftone shading", "graphic novel style"];
-      break;
-    case "line_art":
-      styleTags = ["line art", "ink", "black and white", "manga"];
       break;
     case "watercolor":
       styleTags = ["watercolor", "paper texture", "washed pigments"];
@@ -278,8 +287,11 @@ function applyStyleTags(style: string): string[] {
     case "pencil_sketch":
       styleTags = ["pencil sketch", "hand-drawn", "graphite lines"];
       break;
-    case "unreal_engine_5":
-      styleTags = ["unreal engine 5", "high fidelity", "global illumination"];
+    case "pixel_art":
+      styleTags = ["pixel art", "16-bit", "retro game style"];
+      break;
+    case "game_boy_style":
+      styleTags = ["game boy style", "green monochrome", "low-bit graphics"];
       break;
     case "voxel_art":
       styleTags = ["voxel art", "3d pixels", "cube style"];
@@ -310,6 +322,15 @@ function applyStyleTags(style: string): string[] {
       break;
     case "fisheye_lens":
       styleTags = ["fisheye lens", "distorted perspective"];
+      break;
+    case "double_exposure":
+      styleTags = ["double exposure", "overlay silhouettes"];
+      break;
+    case "comic_book":
+      styleTags = ["comic book", "halftone shading", "graphic novel style"];
+      break;
+    case "line_art":
+      styleTags = ["line art", "ink", "black and white"];
       break;
     case "surrealism":
       styleTags = ["surreal", "dreamlike", "symbolic composition"];

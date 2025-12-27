@@ -17,7 +17,7 @@ export type ThemeKey =
   | "horror_gothic"
   | "noir"
   | "school_life"
-  // ADDED: Historical
+  // Historical
   | "victorian"
   | "medieval"
   | "feudal_japan"
@@ -25,18 +25,23 @@ export type ThemeKey =
   | "noir_1920s"
   | "retro_1950s"
   | "vaporwave_1980s"
-  // ADDED: Sci-Fi/Fantasy
+  // Sci-Fi/Fantasy
   | "space_opera"
   | "solar_punk"
   | "high_fantasy"
   | "dark_fantasy"
   | "dystopian"
-  // ADDED: Atmospheric
+  // Atmospheric
   | "dreamcore"
   | "liminal_space"
   | "glitch_art"
   | "psychedelic"
-  | "ethereal";
+  | "ethereal"
+  // NEW: Punk/Gothic/Surreal
+  | "dieselpunk"
+  | "biopunk"
+  | "gothic"
+  | "surrealism";
 
 export type OutfitItem = {
   label: string;
@@ -133,7 +138,7 @@ export const nsfwTokens: NSFWToken[] = [
 ];
 
 export const stylesList: string[] = [
-  // Existing
+  // Core
   "photorealistic",
   "anime",
   "3d_render",
@@ -142,7 +147,7 @@ export const stylesList: string[] = [
   "pixel_art",
   "comic_book",
   "line_art",
-  // ADDED: Traditional
+  // Traditional
   "watercolor",
   "ink_wash",
   "charcoal_sketch",
@@ -151,20 +156,28 @@ export const stylesList: string[] = [
   "gouache",
   "pastel",
   "pencil_sketch",
-  // ADDED: Digital/3D
+  // Digital/3D
   "unreal_engine_5",
+  "octane_render",
   "voxel_art",
   "low_poly",
   "vector_art",
   "flat_design",
   "isometric",
-  // ADDED: Photography (Realistic)
+  // Photography (Realistic)
   "analog_film",
   "polaroid_style",
   "cinematic",
   "macro_photography",
   "fisheye_lens",
-  // ADDED: Abstract/Art Movements
+  "double_exposure",
+  "hyperrealistic",
+  // Anime sub-styles
+  "manga",
+  "manhwa",
+  "cel_shaded",
+  "game_boy_style",
+  // Abstract/Movements
   "surrealism",
   "pop_art",
   "art_deco",
@@ -183,7 +196,7 @@ export const themesList: ThemeKey[] = [
   "horror_gothic",
   "noir",
   "school_life",
-  // ADDED: Historical
+  // Historical
   "victorian",
   "medieval",
   "feudal_japan",
@@ -191,18 +204,23 @@ export const themesList: ThemeKey[] = [
   "noir_1920s",
   "retro_1950s",
   "vaporwave_1980s",
-  // ADDED: Sci-Fi/Fantasy
+  // Sci-Fi/Fantasy
   "space_opera",
   "solar_punk",
   "high_fantasy",
   "dark_fantasy",
   "dystopian",
-  // ADDED: Atmospheric
+  // Atmospheric
   "dreamcore",
   "liminal_space",
   "glitch_art",
   "psychedelic",
-  "ethereal"
+  "ethereal",
+  // NEW universal vibes
+  "dieselpunk",
+  "biopunk",
+  "gothic",
+  "surrealism"
 ];
 
 export const speciesList: string[] = [

@@ -3,11 +3,11 @@ export type ModelPreset = {
   name: string;
   triggerPrefix?: string;
   negativeDefault?: string;
-  filename: string; // The EXACT filename in ForgeUI models folder
-  defaultStyle: string; // Auto-selected style for this model
-  allowedStyles?: string[]; // Optional: restrict styles to this set
-  defaultWidth?: number; // Optional default width
-  defaultHeight?: number; // Optional default height
+  filename: string;
+  defaultStyle: string;
+  allowedStyles?: string[];
+  defaultWidth?: number;
+  defaultHeight?: number;
 };
 
 export const models: ModelPreset[] = [
@@ -27,8 +27,13 @@ export const models: ModelPreset[] = [
     negativeDefault: 'score_1, score_2, score_3',
     filename: 'ponyDiffusionV6XL_v6StartWithThisOne.safetensors',
     defaultStyle: 'anime',
-    // mapped to our style keys
-    allowedStyles: ['anime', 'digital_painting', '3d_render', 'pixel_art', 'comic_book'],
+    // Expanded anime-compatible styles
+    allowedStyles: [
+      'anime','manga','manhwa','cel_shaded','line_art',
+      'digital_painting','oil_painting','watercolor','ink_wash','gouache','pastel','pencil_sketch',
+      'pixel_art','voxel_art','vector_art','flat_design',
+      '3d_render','unreal_engine_5','comic_book'
+    ],
     defaultWidth: 832,
     defaultHeight: 1216,
   },
@@ -37,8 +42,13 @@ export const models: ModelPreset[] = [
     name: 'PlantMilk Walnut',
     filename: 'plantMilkModelSuite_walnut.safetensors',
     defaultStyle: 'anime',
-    // requested: ['anime', 'digital-art', 'painting', 'sketch'] -> mapped
-    allowedStyles: ['anime', 'digital_painting', 'oil_painting', 'line_art'],
+    // Expanded anime-friendly set
+    allowedStyles: [
+      'anime','manga','manhwa','cel_shaded','line_art',
+      'digital_painting','oil_painting','watercolor','ink_wash','gouache','pastel','pencil_sketch',
+      'pixel_art','voxel_art','vector_art','flat_design',
+      'comic_book','3d_render'
+    ],
     defaultWidth: 1080,
     defaultHeight: 1350,
   },
@@ -47,8 +57,11 @@ export const models: ModelPreset[] = [
     name: 'Kokio Illu v20',
     filename: 'kokioIllu_v20.safetensors',
     defaultStyle: 'anime',
-    // requested: ['anime', 'digital-art', 'comic-book'] -> mapped
-    allowedStyles: ['anime', 'digital_painting', 'comic_book'],
+    allowedStyles: [
+      'anime','manga','manhwa','cel_shaded','line_art',
+      'digital_painting','watercolor','ink_wash','gouache','pastel','pencil_sketch',
+      'pixel_art','vector_art','flat_design','comic_book'
+    ],
     defaultWidth: 1080,
     defaultHeight: 1350,
   }
