@@ -56,6 +56,31 @@ export function usePromptGenerator(opts?: { userId?: string }) {
   const [lastSeed, setLastSeed] = React.useState<number>(initialControls.seed);
   const [lastContext, setLastContext] = React.useState<{ medium?: any; scenario?: any } | undefined>(undefined);
 
+  // ADDED: recent memory to reduce repetition (recency window = 2)
+  const [recent, setRecent] = React.useState<{
+    hairStyle?: string[];
+    body?: string[];
+    expression?: string[];
+    outfit?: string[];
+    background?: string[];
+    lighting?: string[];
+    pose?: string[];
+    accessories?: string[];
+  }>({});
+
+  const pushRecent = (key: keyof typeof recent, value: string | string[]) => {
+    setRecent((prev) => {
+      const arr = Array.isArray(value) ? value : [value];
+      const merged = [...(prev[key] ?? []), ...arr];
+      // Keep last 2 unique entries
+      const uniq: string[] = [];
+      for (const v of merged) {
+        if (!uniq.includes(v)) uniq.push(v);
+      }
+      return { ...prev, [key]: uniq.slice(-2) };
+    });
+  };
+
   // NEW: When user logs in, load profile defaults and set human-only if none found
   React.useEffect(() => {
     const userId = opts?.userId;
@@ -98,30 +123,37 @@ export function usePromptGenerator(opts?: { userId?: string }) {
   // Generate initial output once on mount based on initial controls
   React.useEffect(() => {
     const extraTags = (controls.promptBuilderCategories || []).flatMap((c) => c.selected || []);
-    // NEW: derive allowedSpecies from Species & Race category if present
-    const speciesCat = (controls.promptBuilderCategories || []).find((c) => c.name === "Species & Race");
-    const derivedSpecies = speciesCat && speciesCat.selected && speciesCat.selected.length
-      ? speciesCat.selected.map((s) => s.toLowerCase())
-      : controls.selectedSpecies;
-
     const config: GeneratorConfig = {
       seed: controls.seed,
       includeNegative: controls.includeNegative,
       negativeIntensity: controls.negativeIntensity,
       safeMode: controls.safeMode,
-      allowedSpecies: derivedSpecies,
+      allowedSpecies: controls.selectedSpecies,
       theme: controls.selectedTheme,
       style: controls.selectedStyle,
       selectedModelId: controls.selectedModelId,
       hairColor: controls.hairColor,
       eyeColor: controls.eyeColor,
       extraTags,
+      variety: { recent },
     };
     const result = generatePrompt(config);
     setPositive(result.positive);
     setNegative(result.negative);
     setLastSeed(controls.seed);
     setLastContext({ style: controls.selectedStyle, scenario: result.selections.scenario });
+
+    // Update recent memory from selections
+    pushRecent("hairStyle", result.selections.hair);
+    pushRecent("body", result.selections.body);
+    pushRecent("expression", result.selections.expression);
+    pushRecent("outfit", result.selections.outfit.label);
+    pushRecent("background", result.selections.background.label);
+    pushRecent("lighting", result.selections.lighting);
+    pushRecent("pose", result.selections.pose.label);
+    if (result.selections.accessories.length) {
+      pushRecent("accessories", result.selections.accessories.map((a) => a.label));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -129,29 +161,23 @@ export function usePromptGenerator(opts?: { userId?: string }) {
     setControls((c) => ({ ...c, seed: randomSeed() }));
   }, []);
 
-  // UPDATED: accept current controls to avoid stale closures
   const generate = React.useCallback((next?: ControlsState) => {
     const cur = next ?? controls;
     const newSeed = randomSeed();
     const extraTags = (cur.promptBuilderCategories || []).flatMap((c) => c.selected || []);
-    // NEW: derive allowedSpecies from Species & Race category if present
-    const speciesCat = (cur.promptBuilderCategories || []).find((c) => c.name === "Species & Race");
-    const derivedSpecies = speciesCat && speciesCat.selected && speciesCat.selected.length
-      ? speciesCat.selected.map((s) => s.toLowerCase())
-      : cur.selectedSpecies;
-
     const config: GeneratorConfig = {
       seed: newSeed,
       includeNegative: cur.includeNegative,
       negativeIntensity: cur.negativeIntensity,
       safeMode: cur.safeMode,
-      allowedSpecies: derivedSpecies,
+      allowedSpecies: cur.selectedSpecies,
       theme: cur.selectedTheme,
       style: cur.selectedStyle,
       selectedModelId: cur.selectedModelId,
       hairColor: cur.hairColor,
       eyeColor: cur.eyeColor,
       extraTags,
+      variety: { recent },
     };
     const result = generatePrompt(config);
 
@@ -161,8 +187,20 @@ export function usePromptGenerator(opts?: { userId?: string }) {
     setLastSeed(newSeed);
     setLastContext({ style: cur.selectedStyle, scenario: result.selections.scenario });
 
+    // Update recent memory from selections
+    pushRecent("hairStyle", result.selections.hair);
+    pushRecent("body", result.selections.body);
+    pushRecent("expression", result.selections.expression);
+    pushRecent("outfit", result.selections.outfit.label);
+    pushRecent("background", result.selections.background.label);
+    pushRecent("lighting", result.selections.lighting);
+    pushRecent("pose", result.selections.pose.label);
+    if (result.selections.accessories.length) {
+      pushRecent("accessories", result.selections.accessories.map((a) => a.label));
+    }
+
     return { positive: result.positive, negative: result.negative, seed: newSeed };
-  }, [controls]);
+  }, [controls, recent]);
 
   const output: OutputState = React.useMemo(
     () => ({
