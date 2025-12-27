@@ -42,8 +42,9 @@ const ImageResult: React.FC<Props> = ({ imageData, isLoading }) => {
           className="group relative w-full h-full flex items-center justify-center"
           aria-label="Expand image"
         >
+          {console.log("Image Source:", imageData)}
           <img
-            src={`data:image/png;base64,${imageData}`}
+            src={imageData}
             alt="Generated result"
             className="h-full w-auto object-contain rounded-lg shadow-md"
           />
@@ -91,11 +92,14 @@ const ImageResult: React.FC<Props> = ({ imageData, isLoading }) => {
         <DialogContent className="max-w-5xl bg-black/80 border border-white/10">
           <div className="w-full h-full flex items-center justify-center">
             {imageData ? (
-              <img
-                src={`data:image/png;base64,${imageData}`}
-                alt="Generated result full"
-                className="max-h-[85vh] w-auto object-contain rounded-lg shadow-lg"
-              />
+              <>
+                {console.log("Image Source (dialog):", imageData)}
+                <img
+                  src={imageData}
+                  alt="Generated result full"
+                  className="max-h-[85vh] w-auto object-contain rounded-lg shadow-lg"
+                />
+              </>
             ) : null}
           </div>
         </DialogContent>
