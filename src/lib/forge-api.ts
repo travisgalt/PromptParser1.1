@@ -31,8 +31,14 @@ export async function generateImage(
     };
   }
 
+  // UPDATED: Correct endpoint and log full URL for debugging
+  const url = "/sdapi/v1/txt2img";
+  const fullUrl =
+    typeof window !== "undefined" ? `${window.location.origin}${url}` : url;
+  console.log("Forge API request URL:", fullUrl);
+
   try {
-    const resp = await fetch("/api/forge/txt2img", {
+    const resp = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -47,7 +53,9 @@ export async function generateImage(
         showError("ADetailer failed, generating without it");
         // Remove ADetailer and retry once
         delete payload.alwayson_scripts;
-        const retryResp = await fetch("/api/forge/txt2img", {
+
+        console.log("Forge API retry URL:", fullUrl);
+        const retryResp = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -76,8 +84,10 @@ export async function generateImage(
     if (useADetailer && /ADetailer|adetailer|script/i.test(msg)) {
       showError("ADetailer failed, generating without it");
       delete payload.alwayson_scripts;
+
+      console.log("Forge API retry URL (catch):", fullUrl);
       try {
-        const retryResp = await fetch("/api/forge/txt2img", {
+        const retryResp = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
