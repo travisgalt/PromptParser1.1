@@ -8,6 +8,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { defaultCategories } from "@/lib/prompt-builder-data";
 import { getThemeTagsForModel } from "@/lib/themes";
 
+// Define the RecentState type used by the recency memory
+type RecentState = {
+  hairStyle?: string[];
+  body?: string[];
+  expression?: string[];
+  outfit?: string[];
+  background?: string[];
+  lighting?: string[];
+  pose?: string[];
+  accessories?: string[];
+};
+
 function randomSeed() {
   return Math.floor(Math.random() * 1_000_000_000);
 }
@@ -86,6 +98,63 @@ export function usePromptGenerator(opts?: { userId?: string }) {
     return () => { active = false; };
   }, [controls.selectedTheme, controls.selectedModelId]);
 
+  // NEW: Load Prompt Builder defaults from localStorage on mount
+  React.useEffect(() => {
+    try {
+      const raw = typeof window !== "undefined" ? localStorage.getItem("user_default_builder") : null;
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          setControls((c) => ({ ...c, promptBuilderCategories: parsed }));
+        }
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }, []);
+
+  // NEW: Gate initial generation until theme tags have resolved (ensures modifiers apply)
+  const generatedOnceRef = React.useRef(false);
+  React.useEffect(() => {
+    if (generatedOnceRef.current) return;
+
+    const extraTags = (controls.promptBuilderCategories || []).flatMap((c) => c.selected || []);
+    const config: GeneratorConfig = {
+      seed: controls.seed,
+      includeNegative: controls.includeNegative,
+      negativeIntensity: controls.negativeIntensity,
+      safeMode: controls.safeMode,
+      allowedSpecies: controls.selectedSpecies,
+      theme: controls.selectedTheme,
+      style: controls.selectedStyle,
+      selectedModelId: controls.selectedModelId,
+      hairColor: controls.hairColor,
+      eyeColor: controls.eyeColor,
+      extraTags,
+      variety: { recent },
+      themeTags: themeTags ?? undefined,
+    };
+    const result = generatePrompt(config);
+    setPositive(result.positive);
+    setNegative(result.negative);
+    setLastSeed(controls.seed);
+    setLastContext({ style: controls.selectedStyle, scenario: result.selections.scenario });
+
+    // Update recent memory from selections
+    pushRecent("hairStyle", result.selections.hair);
+    pushRecent("body", result.selections.body);
+    pushRecent("expression", result.selections.expression);
+    pushRecent("outfit", result.selections.outfit.label);
+    pushRecent("background", result.selections.background.label);
+    pushRecent("lighting", result.selections.lighting);
+    pushRecent("pose", result.selections.pose.label);
+    if (result.selections.accessories.length) {
+      pushRecent("accessories", result.selections.accessories.map((a) => a.label));
+    }
+
+    generatedOnceRef.current = true;
+  }, [themeTags]);
+
   // NEW: When user logs in, load profile defaults and set human-only if none found
   React.useEffect(() => {
     const userId = opts?.userId;
@@ -124,45 +193,6 @@ export function usePromptGenerator(opts?: { userId?: string }) {
       });
     })();
   }, [opts?.userId]);
-
-  // Generate initial output once on mount based on initial controls
-  React.useEffect(() => {
-    const extraTags = (controls.promptBuilderCategories || []).flatMap((c) => c.selected || []);
-    const config: GeneratorConfig = {
-      seed: controls.seed,
-      includeNegative: controls.includeNegative,
-      negativeIntensity: controls.negativeIntensity,
-      safeMode: controls.safeMode,
-      allowedSpecies: controls.selectedSpecies,
-      theme: controls.selectedTheme,
-      style: controls.selectedStyle,
-      selectedModelId: controls.selectedModelId,
-      hairColor: controls.hairColor,
-      eyeColor: controls.eyeColor,
-      extraTags,
-      variety: { recent },
-      // NEW: inject resolved theme modifiers
-      themeTags: themeTags ?? undefined,
-    };
-    const result = generatePrompt(config);
-    setPositive(result.positive);
-    setNegative(result.negative);
-    setLastSeed(controls.seed);
-    setLastContext({ style: controls.selectedStyle, scenario: result.selections.scenario });
-
-    // Update recent memory from selections
-    pushRecent("hairStyle", result.selections.hair);
-    pushRecent("body", result.selections.body);
-    pushRecent("expression", result.selections.expression);
-    pushRecent("outfit", result.selections.outfit.label);
-    pushRecent("background", result.selections.background.label);
-    pushRecent("lighting", result.selections.lighting);
-    pushRecent("pose", result.selections.pose.label);
-    if (result.selections.accessories.length) {
-      pushRecent("accessories", result.selections.accessories.map((a) => a.label));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const randomize = React.useCallback(() => {
     setControls((c) => ({ ...c, seed: randomSeed() }));

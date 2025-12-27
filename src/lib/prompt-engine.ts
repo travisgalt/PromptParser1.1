@@ -83,8 +83,14 @@ function pickAvoiding<T extends string | { label: string }>(
 
 // Category sets to recognize user-selected tags
 const CORE_BODY_TAGS = new Set(["athletic","curvy","petite","muscular","slender","voluptuous","tall","chibi"]);
-const CORE_HAIR_STYLE_TAGS = new Set(["long hair","short hair","bob cut","pixie cut","ponytail","twintails","messy hair","braids","wavy hair","drills","ahoge"]);
-const CORE_HAIR_COLOR_TAGS = new Set(["blonde","black hair","brown hair","red hair","white hair","silver hair","pastel pink","blue hair","multicolored hair","gradient hair"]);
+const CORE_HAIR_STYLE_TAGS = new Set([
+  "long hair","short hair","bob cut","pixie cut","ponytail","twintails","messy hair","braids","wavy hair",
+  "drill hair","ahoge"
+]);
+const CORE_HAIR_COLOR_TAGS = new Set([
+  "blonde","black hair","brown hair","red hair","white hair","silver hair","pastel pink hair",
+  "blue hair","multicolored hair","gradient hair"
+]);
 const CORE_EYE_TAGS = new Set(["blue eyes","red eyes","green eyes","heterochromia","glowing eyes","tsurime","tareme","closed eyes"]);
 const CORE_EXPRESSION_TAGS = new Set(["smiling","smug","embarrassed","angry","expressionless","yandere","blushing","crying","surprised","parted lips"]);
 
