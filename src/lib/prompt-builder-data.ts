@@ -7,7 +7,10 @@ export const defaultCategories: PromptCategoryDef[] = [
   // --- PRIORITY 1: QUALITY ---
   {
     name: "Quality Boosters",
-    tags: ["masterpiece", "best quality", "absurdres", "8k", "highly detailed", "sharp focus", "HDR", "intricate details", "hyperdetailed", "perfect anatomy", "distinct features"]
+    tags: [
+      "masterpiece", "best quality", "absurdres", "8k", "highly detailed", "sharp focus", "HDR", "intricate details", "hyperdetailed", "perfect anatomy", "distinct features",
+      "photorealistic", "hyperrealistic", "sfumato", "tenebrism", "impasto", "fine art", "cinematic composition", "rule of thirds", "golden ratio"
+    ]
   },
 
   // --- PRIORITY 2: SUBJECT CORE ---
@@ -75,11 +78,17 @@ export const defaultCategories: PromptCategoryDef[] = [
   // --- PRIORITY 5: POSE & CAMERA ---
   {
     name: "Pose (Mutually Exclusive)",
-    tags: ["standing", "sitting", "squatting", "kneeling", "lying down", "on stomach", "on back", "running", "walking", "jumping", "flying", "floating", "fighting stance", "reaching out", "arms crossed", "hands on hips", "peace sign", "selfie pose", "looking back", "looking over shoulder"]
+    tags: [
+      "standing", "sitting", "squatting", "kneeling", "lying down", "on stomach", "on back", "running", "walking", "jumping", "flying", "floating", "fighting stance", "reaching out", "arms crossed", "hands on hips", "peace sign", "selfie pose", "looking back", "looking over shoulder",
+      "contrapposto", "dynamic pose", "action pose", "foreshortening", "gesture drawing pose", "relaxed pose", "tension"
+    ]
   },
   {
     name: "Camera & Framing",
-    tags: ["cowboy shot", "upper body", "full body", "close-up", "portrait", "face focus", "dutch angle", "from below", "from above", "overhead shot", "wide angle", "fisheye", "depth of field", "bokeh"]
+    tags: [
+      "cowboy shot", "upper body", "full body", "close-up", "portrait", "face focus", "dutch angle", "from below", "from above", "overhead shot", "wide angle", "fisheye", "depth of field", "bokeh",
+      "foreshortening", "shallow depth of field", "negative space", "leading lines", "low angle shot", "high angle shot", "dutch tilt"
+    ]
   },
 
   // --- PRIORITY 6: ENVIRONMENT ---
@@ -93,6 +102,9 @@ export const defaultCategories: PromptCategoryDef[] = [
   },
   {
     name: "Lighting",
-    tags: ["cinematic lighting", "natural light", "volumetric lighting", "neon lights", "rim lighting", "backlighting", "sunset", "golden hour", "dark and moody", "god rays", "studio lighting", "soft lighting", "hard shadows", "bioluminescent light"]
+    tags: [
+      "cinematic lighting", "natural light", "volumetric lighting", "neon lights", "rim lighting", "backlighting", "sunset", "golden hour", "dark and moody", "god rays", "studio lighting", "soft lighting", "hard shadows", "bioluminescent light",
+      "chiaroscuro", "Rembrandt lighting", "butterfly lighting", "split lighting", "harsh shadows", "dramatic contrast", "silhouette", "bioluminescent"
+    ]
   }
 ];
