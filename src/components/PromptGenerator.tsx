@@ -33,6 +33,40 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
   const [generatedImage, setGeneratedImage] = React.useState<string | null>(null);
   const [isGeneratingImg, setIsGeneratingImg] = React.useState(false);
 
+  // ADDED: Save current generator settings to profile defaults when requested
+  React.useEffect(() => {
+    const handler = async () => {
+      if (!userId) {
+        showError("Please log in to save defaults.");
+        return;
+      }
+      const defaults = {
+        selectedModelId: controls.selectedModelId,
+        width: controls.width,
+        height: controls.height,
+        selectedStyle: controls.selectedStyle,
+        selectedTheme: controls.selectedTheme,
+        safeMode: controls.safeMode,
+        selectedSpecies: controls.selectedSpecies,
+        hairColor: (controls as any).hairColor,
+        eyeColor: (controls as any).eyeColor,
+      };
+      const { error } = await supabase
+        .from("profiles")
+        .update({ default_settings: defaults })
+        .eq("id", userId);
+
+      if (error) {
+        showError("Failed to save defaults.");
+        return;
+      }
+      showSuccess("Default generator settings saved.");
+    };
+
+    window.addEventListener("generator:save_defaults", handler as EventListener);
+    return () => window.removeEventListener("generator:save_defaults", handler as EventListener);
+  }, [userId, controls]);
+
   React.useEffect(() => {
     supabase
       .from("negative_keywords")

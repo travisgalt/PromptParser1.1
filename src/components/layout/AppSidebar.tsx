@@ -25,7 +25,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { Settings, Lock, Shield, User as UserIcon, LogOut, Trash2, Download } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
@@ -70,6 +69,12 @@ const AppSidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [autoSaveImages, setAutoSaveImages] = React.useState<boolean>(false);
   const [privacyBlur, setPrivacyBlur] = React.useState<boolean>(false);
   const [confirmClearOpen, setConfirmClearOpen] = React.useState<boolean>(false);
+
+  // ADDED: handler to save current generator settings as default
+  const handleSaveDefaults = () => {
+    window.dispatchEvent(new CustomEvent("generator:save_defaults"));
+    showSuccess("Saved current generator settings as default");
+  };
 
   React.useEffect(() => {
     if (!openSettings) return;
@@ -195,114 +200,14 @@ const AppSidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               </div>
 
               <Dialog open={openSettings} onOpenChange={setOpenSettings}>
-                <DialogContent className="max-w-2xl">
+                {/* Increase padding for better spacing */}
+                <DialogContent className="max-w-2xl p-6">
                   <DialogHeader>
                     <DialogTitle>User Settings</DialogTitle>
                     <DialogDescription>Manage your account, preferences, and plan.</DialogDescription>
                   </DialogHeader>
 
-                  {/* Profile Header (full width, gradient) */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="md:col-span-2 rounded-md border border-white/10 p-4 bg-gradient-to-r from-gray-900 to-gray-800">
-                      <div className="flex items-center gap-4">
-                        <Avatar className="h-16 w-16">
-                          <AvatarImage src={undefined} alt={email || "User"} />
-                          <AvatarFallback className="text-xl">{initials}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <div className="text-base font-semibold">{email}</div>
-                          {memberSince && (
-                            <div className="text-xs text-muted-foreground">Member Since: {memberSince}</div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Stats Card - premium style */}
-                    <Card className="bg-slate-900/60 backdrop-blur-md border border-white/10 border-l-4 border-purple-500">
-                      <UICardHeader>
-                        <UICardTitle className="text-sm">Total Prompts Generated</UICardTitle>
-                      </UICardHeader>
-                      <UICardContent>
-                        <div className="text-3xl font-bold">{promptCount}</div>
-                        <div className="text-xs text-muted-foreground">Across all sessions</div>
-                      </UICardContent>
-                    </Card>
-
-                    {/* Global Generation Preferences */}
-                    <Card className="bg-slate-900/60 backdrop-blur-md border border-white/10 md:col-span-2">
-                      <UICardHeader>
-                        <UICardTitle className="text-sm">Global Generation Preferences</UICardTitle>
-                      </UICardHeader>
-                      <UICardContent className="space-y-4">
-                        <div className="space-y-2">
-                          <Label>Global Negative Prompt</Label>
-                          <Textarea
-                            placeholder="e.g., nsfw, low quality, bad hands"
-                            value={globalNegative}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              setGlobalNegative(v);
-                              localStorage.setItem("generator:global_negative", v);
-                            }}
-                            className="min-h-[100px] bg-slate-900 border-slate-700 text-white"
-                          />
-                          <div className="text-xs text-muted-foreground">
-                            This base negative will be applied automatically to new sessions.
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <Label>Auto-save generated images to history</Label>
-                          <Switch
-                            checked={autoSaveImages}
-                            onCheckedChange={(c) => {
-                              setAutoSaveImages(c);
-                              localStorage.setItem("generator:auto_save_images", String(c));
-                            }}
-                          />
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <Label>Blur items in Recent History sidebar</Label>
-                          <Switch
-                            checked={privacyBlur}
-                            onCheckedChange={(c) => {
-                              setPrivacyBlur(c);
-                              localStorage.setItem("generator:privacy_blur", String(c));
-                              // Broadcast to update sidebar rendering
-                              window.dispatchEvent(new CustomEvent("generator:history_update"));
-                            }}
-                          />
-                        </div>
-                      </UICardContent>
-                    </Card>
-
-                    {/* Data & Storage */}
-                    <Card className="bg-slate-900/60 backdrop-blur-md border border-white/10 md:col-span-2">
-                      <UICardHeader>
-                        <UICardTitle className="text-sm">Data & Storage</UICardTitle>
-                      </UICardHeader>
-                      <UICardContent className="flex flex-wrap gap-3">
-                        <Button
-                          variant="destructive"
-                          onClick={() => setConfirmClearOpen(true)}
-                          className="gap-2"
-                        >
-                          <Trash2 className="h-4 w-4" /> Clear Generation History
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          onClick={exportAllPrompts}
-                          className="gap-2"
-                        >
-                          <Download className="h-4 w-4" /> Export All Prompts
-                        </Button>
-                      </UICardContent>
-                    </Card>
-                  </div>
-
-                  {/* Tabs: keep only content sections; remove Theme box */}
+                  {/* Tabs: Overview = info/actions, Preferences = functional settings */}
                   <Tabs defaultValue="overview" className="mt-4">
                     <TabsList className="w-full flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
@@ -341,15 +246,66 @@ const AppSidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                       </div>
                     </TabsList>
 
+                    {/* OVERVIEW: Info & Account Actions */}
                     <TabsContent value="overview" className="space-y-4 mt-4">
-                      {/* We already rendered the grid above as the overview content */}
-                      <div className="text-xs text-muted-foreground">
-                        Overview includes profile, stats, global preferences, and storage tools.
+                      {/* Dashboard grid: stretch heights for symmetry */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+                        {/* Profile Header - full width, subtle background */}
+                        <div className="md:col-span-2 rounded-md p-4 bg-white/5">
+                          <div className="flex items-center gap-4">
+                            <Avatar className="h-16 w-16">
+                              <AvatarImage src={undefined} alt={email || "User"} />
+                              <AvatarFallback className="text-xl">{initials}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                              <div className="text-base font-semibold">{email}</div>
+                              {memberSince && (
+                                <div className="text-xs text-muted-foreground">Member Since: {memberSince}</div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Stats Card - premium look */}
+                        <Card className="bg-slate-800 border border-white/10 h-full">
+                          <UICardHeader>
+                            <UICardTitle className="text-sm">Total Prompts Generated</UICardTitle>
+                          </UICardHeader>
+                          <UICardContent>
+                            <div className="text-3xl font-bold">{promptCount}</div>
+                            <div className="text-xs text-muted-foreground">Across all sessions</div>
+                          </UICardContent>
+                        </Card>
+
+                        {/* Data & Storage - actions */}
+                        <Card className="bg-slate-800 border border-white/10 h-full">
+                          <UICardHeader>
+                            <UICardTitle className="text-sm">Data & Storage</UICardTitle>
+                          </UICardHeader>
+                          <UICardContent className="flex flex-wrap gap-3">
+                            <Button
+                              variant="destructive"
+                              onClick={() => setConfirmClearOpen(true)}
+                              className="gap-2"
+                            >
+                              <Trash2 className="h-4 w-4" /> Clear Generation History
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              onClick={exportAllPrompts}
+                              className="gap-2"
+                            >
+                              <Download className="h-4 w-4" /> Export All Prompts
+                            </Button>
+                          </UICardContent>
+                        </Card>
                       </div>
                     </TabsContent>
 
+                    {/* PREFERENCES: Functional settings */}
                     <TabsContent value="preferences" className="space-y-4 mt-4">
-                      <Card className="bg-slate-900/50 backdrop-blur-md border border-white/10">
+                      {/* Default Defaults (medium/safe) */}
+                      <Card className="bg-slate-800 border border-white/10">
                         <UICardHeader>
                           <UICardTitle className="text-sm">Default Defaults</UICardTitle>
                         </UICardHeader>
@@ -394,10 +350,65 @@ const AppSidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                           </div>
                         </UICardContent>
                       </Card>
+
+                      {/* Global Generation Preferences (moved here) */}
+                      <Card className="bg-slate-800 border border-white/10">
+                        <UICardHeader>
+                          <UICardTitle className="text-sm">Global Generation Preferences</UICardTitle>
+                        </UICardHeader>
+                        <UICardContent className="space-y-4">
+                          <div className="space-y-2">
+                            <Label>Global Negative Prompt</Label>
+                            <Textarea
+                              placeholder="e.g., nsfw, low quality, bad hands"
+                              value={globalNegative}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setGlobalNegative(v);
+                                localStorage.setItem("generator:global_negative", v);
+                              }}
+                              className="min-h-[100px] bg-slate-900 border-slate-700 text-white"
+                            />
+                            <div className="text-xs text-muted-foreground">
+                              This base negative will be applied automatically to new sessions.
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <Label>Auto-save generated images to history</Label>
+                            <Switch
+                              checked={autoSaveImages}
+                              onCheckedChange={(c) => {
+                                setAutoSaveImages(c);
+                                localStorage.setItem("generator:auto_save_images", String(c));
+                              }}
+                            />
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <Label>Blur items in Recent History sidebar</Label>
+                            <Switch
+                              checked={privacyBlur}
+                              onCheckedChange={(c) => {
+                                setPrivacyBlur(c);
+                                localStorage.setItem("generator:privacy_blur", String(c));
+                                window.dispatchEvent(new CustomEvent("generator:history_update"));
+                              }}
+                            />
+                          </div>
+
+                          {/* Save current generator state as default */}
+                          <div className="pt-2">
+                            <Button className="gap-2" onClick={handleSaveDefaults}>
+                              Save Current Generator Settings as Default
+                            </Button>
+                          </div>
+                        </UICardContent>
+                      </Card>
                     </TabsContent>
 
                     <TabsContent value="subscription" className="space-y-4 mt-4">
-                      <Card className="bg-slate-900/50 backdrop-blur-md border border-white/10">
+                      <Card className="bg-slate-800 border border-white/10">
                         <UICardHeader>
                           <UICardTitle className="text-sm">Current Plan</UICardTitle>
                         </UICardHeader>
