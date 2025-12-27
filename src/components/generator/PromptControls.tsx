@@ -8,11 +8,9 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { HelpCircle } from "lucide-react";
-import { Lock } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSession } from "@/components/auth/SessionProvider";
-import { Checkbox } from "@/components/ui/checkbox";
-import { speciesList, stylesList, themesList, hairColors, eyeColors } from "@/lib/prompt-data";
+import { speciesList, stylesList, themesList } from "@/lib/prompt-data";
 import { models } from "@/lib/model-data";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import useSubscription from "@/hooks/useSubscription";
@@ -34,8 +32,6 @@ export type ControlsState = {
   selectedModelId: string; // model checkpoint id
   width: number; // NEW
   height: number; // NEW
-  hairColor: string; // already added earlier
-  eyeColor: string;  // already added earlier
   // ADDED: ADetailer toggle
   useADetailer: boolean;
   // ADDED: prompt builder categories with selection state
@@ -61,13 +57,6 @@ export const PromptControls: React.FC<Props> = ({
 }) => {
   const setField = <K extends keyof ControlsState>(key: K, value: ControlsState[K]) => {
     onChange({ ...state, [key]: value });
-  };
-
-  const toggleSpecies = (name: string) => {
-    const next = new Set(state.selectedSpecies || []);
-    if (next.has(name)) next.delete(name);
-    else next.add(name);
-    setField("selectedSpecies", Array.from(next));
   };
 
   // NEW: toggle a builder tag within a category
@@ -302,82 +291,7 @@ export const PromptControls: React.FC<Props> = ({
           </span>
         </div>
 
-        {/* Character Settings */}
-        <div className="space-y-4">
-          <Label className="text-base">Character Settings</Label>
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {speciesList.map((sp) => {
-                const checked = (state.selectedSpecies || []).includes(sp);
-                const id = `species-${sp.replace(/\s+/g, "-")}`;
-                return (
-                  <div key={sp} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={id}
-                      checked={checked}
-                      onCheckedChange={() => toggleSpecies(sp)}
-                      className="data-[state=checked]:bg-violet-600 data-[state=checked]:border-violet-600 focus-visible:ring-violet-600"
-                    />
-                    <Label htmlFor={id} className="capitalize">
-                      {sp}
-                    </Label>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* ADDED: Appearance Section */}
-        <div className="space-y-4">
-          <Label className="text-base">Appearance</Label>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Hair Color */}
-            <div className="space-y-2">
-              <Label>Hair Color</Label>
-              <Select
-                value={state.hairColor}
-                onValueChange={(v) => setField("hairColor", v)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select Hair Color" />
-                </SelectTrigger>
-                <SelectContent>
-                  {hairColors.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Eye Color */}
-            <div className="space-y-2">
-              <Label>Eye Color</Label>
-              <Select
-                value={state.eyeColor}
-                onValueChange={(v) => setField("eyeColor", v)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select Eye Color" />
-                </SelectTrigger>
-                <SelectContent>
-                  {eyeColors.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Random picks realistic hair colors in Photorealistic style; Anime allows all colors.
-          </p>
-        </div>
-
-        {/* ADDED: Prompt Builder Categories - Styled */}
+        {/* Prompt Builder Categories - Styled */}
         <div className="space-y-2">
           <Label className="text-base">Prompt Builder</Label>
           <Accordion

@@ -4,6 +4,12 @@ export type PromptCategoryDef = {
 };
 
 export const defaultCategories: PromptCategoryDef[] = [
+  // ADDED: SPECIES & RACE (first category)
+  {
+    name: "Species & Race",
+    tags: ["Human", "Elf", "Dark Elf", "Demon", "Angel", "Android", "Cyborg", "Vampire", "Kitsune", "Catgirl", "Orc"]
+  },
+
   // --- CHARACTER CORE ---
   {
     name: "Body Type",
@@ -19,11 +25,11 @@ export const defaultCategories: PromptCategoryDef[] = [
   },
   {
     name: "Hair Color",
-    tags: ["blonde", "black hair", "brown hair", "red hair", "white hair", "silver hair", "pastel pink", "blue hair", "multicolored hair", "gradient hair"]
+    tags: ["blonde", "black hair", "brown hair", "red hair", "white hair", "silver hair", "pink hair", "blue hair", "purple hair", "green hair", "multicolored hair", "gradient hair"]
   },
   {
     name: "Eyes",
-    tags: ["blue eyes", "red eyes", "green eyes", "heterochromia", "glowing eyes", "tsurime", "tareme", "closed eyes"]
+    tags: ["blue eyes", "green eyes", "brown eyes", "red eyes", "purple eyes", "yellow eyes", "amber eyes", "grey eyes", "heterochromia", "glowing eyes", "tsurime", "tareme", "closed eyes"]
   },
   {
     name: "Expression",

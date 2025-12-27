@@ -98,18 +98,23 @@ export function usePromptGenerator(opts?: { userId?: string }) {
   // Generate initial output once on mount based on initial controls
   React.useEffect(() => {
     const extraTags = (controls.promptBuilderCategories || []).flatMap((c) => c.selected || []);
+    // NEW: derive allowedSpecies from Species & Race category if present
+    const speciesCat = (controls.promptBuilderCategories || []).find((c) => c.name === "Species & Race");
+    const derivedSpecies = speciesCat && speciesCat.selected && speciesCat.selected.length
+      ? speciesCat.selected.map((s) => s.toLowerCase())
+      : controls.selectedSpecies;
+
     const config: GeneratorConfig = {
       seed: controls.seed,
       includeNegative: controls.includeNegative,
       negativeIntensity: controls.negativeIntensity,
       safeMode: controls.safeMode,
-      allowedSpecies: controls.selectedSpecies,
+      allowedSpecies: derivedSpecies,
       theme: controls.selectedTheme,
       style: controls.selectedStyle,
       selectedModelId: controls.selectedModelId,
       hairColor: controls.hairColor,
       eyeColor: controls.eyeColor,
-      // ADDED: pass user-selected tags
       extraTags,
     };
     const result = generatePrompt(config);
@@ -129,18 +134,23 @@ export function usePromptGenerator(opts?: { userId?: string }) {
     const cur = next ?? controls;
     const newSeed = randomSeed();
     const extraTags = (cur.promptBuilderCategories || []).flatMap((c) => c.selected || []);
+    // NEW: derive allowedSpecies from Species & Race category if present
+    const speciesCat = (cur.promptBuilderCategories || []).find((c) => c.name === "Species & Race");
+    const derivedSpecies = speciesCat && speciesCat.selected && speciesCat.selected.length
+      ? speciesCat.selected.map((s) => s.toLowerCase())
+      : cur.selectedSpecies;
+
     const config: GeneratorConfig = {
       seed: newSeed,
       includeNegative: cur.includeNegative,
       negativeIntensity: cur.negativeIntensity,
       safeMode: cur.safeMode,
-      allowedSpecies: cur.selectedSpecies,
+      allowedSpecies: derivedSpecies,
       theme: cur.selectedTheme,
       style: cur.selectedStyle,
       selectedModelId: cur.selectedModelId,
       hairColor: cur.hairColor,
       eyeColor: cur.eyeColor,
-      // ADDED
       extraTags,
     };
     const result = generatePrompt(config);
