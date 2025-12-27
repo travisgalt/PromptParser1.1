@@ -21,6 +21,7 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/
 import { Toggle } from "@/components/ui/toggle";
 import { Badge } from "@/components/ui/badge";
 import { defaultCategories } from "@/lib/prompt-builder-data";
+import { cn } from "@/lib/utils";
 
 export type ControlsState = {
   seed: number;
@@ -82,6 +83,9 @@ export const PromptControls: React.FC<Props> = ({
     setField("promptBuilderCategories", nextCategories);
   };
 
+  // Track open accordion categories to style headers with an accent
+  const [openCats, setOpenCats] = React.useState<string[]>([]);
+
   // NEW: detect login status
   const { session } = useSession();
   const userId = session?.user?.id;
@@ -128,6 +132,8 @@ export const PromptControls: React.FC<Props> = ({
   const clampDim = (v: number) => Math.max(512, Math.min(2048, v));
   const setWidth = (v: number) => setField("width", clampDim(v));
   const setHeight = (v: number) => setField("height", clampDim(v));
+
+  const categoriesWithState = state.promptBuilderCategories || defaultCategories.map((c) => ({ ...c, selected: [] }));
 
   return (
     <Card className="w-full bg-slate-900/50 backdrop-blur-md border border-white/10">
@@ -371,20 +377,38 @@ export const PromptControls: React.FC<Props> = ({
           </p>
         </div>
 
-        {/* ADDED: Prompt Builder Categories */}
-        <div className="space-y-3">
+        {/* ADDED: Prompt Builder Categories - Styled */}
+        <div className="space-y-2">
           <Label className="text-base">Prompt Builder</Label>
-          <Accordion type="multiple" className="w-full">
-            {(state.promptBuilderCategories || defaultCategories.map((c) => ({ ...c, selected: [] }))).map((cat, idx) => {
+          <Accordion
+            type="multiple"
+            value={openCats}
+            onValueChange={(vals: string | string[]) => setOpenCats(Array.isArray(vals) ? vals : [vals])}
+            className="grid grid-cols-1 md:grid-cols-2 gap-3"
+          >
+            {categoriesWithState.map((cat, idx) => {
               const count = (cat.selected || []).length;
+              const isOpen = openCats.includes(cat.name);
+              const isActive = isOpen || count > 0;
+
               return (
-                <AccordionItem key={cat.name} value={cat.name}>
-                  <AccordionTrigger className="flex items-center justify-between">
-                    <span className="text-sm">{cat.name}</span>
-                    <Badge className="bg-white/10 text-white border border-white/10">{count}</Badge>
+                <AccordionItem key={cat.name} value={cat.name} className="rounded-lg">
+                  <AccordionTrigger
+                    className={cn(
+                      "px-3 py-2 rounded-md border text-sm bg-slate-800/60 text-slate-200",
+                      "hover:bg-slate-800/80",
+                      isActive ? "border-violet-600/50 shadow-[0_0_0_1px_rgba(139,92,246,0.35)]" : "border-white/10"
+                    )}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span className="truncate">{cat.name}</span>
+                      <Badge className="bg-slate-800/40 text-slate-400 border border-slate-700">
+                        {count}
+                      </Badge>
+                    </div>
                   </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="flex flex-wrap gap-2">
+                  <AccordionContent className="border border-white/10 rounded-md bg-white/5">
+                    <div className="p-3 flex flex-wrap gap-2">
                       {cat.tags.map((tag) => {
                         const pressed = (cat.selected || []).includes(tag);
                         return (
@@ -392,11 +416,12 @@ export const PromptControls: React.FC<Props> = ({
                             key={tag}
                             pressed={pressed}
                             onPressedChange={() => toggleBuilderTag(idx, tag)}
-                            className={`px-3 py-1.5 rounded-md border text-sm ${
+                            className={cn(
+                              "px-3 py-1.5 rounded-full border text-xs md:text-sm cursor-pointer transition-colors",
                               pressed
-                                ? "bg-violet-600/30 border-violet-600 text-white"
-                                : "bg-white/5 border-white/10 text-slate-300"
-                            }`}
+                                ? "bg-violet-600 text-white border-violet-600"
+                                : "bg-slate-800/50 text-slate-300 border-white/10 hover:bg-gray-700"
+                            )}
                             aria-label={tag}
                           >
                             {tag}
