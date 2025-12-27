@@ -3,18 +3,29 @@ export type PromptCategoryDef = {
   tags: string[];
 };
 
+// Add centralized catalogs
+import { ALL_THEMES, ALL_STYLES } from "@/lib/style-catalogs";
+
 export const defaultCategories: PromptCategoryDef[] = [
-  // --- PRIORITY 1: QUALITY & STYLE (Global Modifiers) ---
+  // --- PRIORITY 0: Theme ---
+  {
+    name: "Theme",
+    tags: ALL_THEMES,
+  },
+
+  // --- PRIORITY 1: Art Style (full catalog; rendering will filter for restricted models) ---
+  {
+    name: "Art Style",
+    tags: ALL_STYLES,
+  },
+
+  // --- PRIORITY 2: QUALITY & STYLE (Global Modifiers) ---
   {
     name: "Quality Boosters",
     tags: ["masterpiece", "best quality", "absurdres", "8k", "highly detailed", "photorealistic", "hyperrealistic", "sharp focus", "HDR", "intricate details", "sfumato", "tenebrism", "impasto", "fine art", "cinematic composition", "rule of thirds", "golden ratio"]
   },
-  {
-    name: "Art Style",
-    tags: ["anime", "realistic", "semi-realistic", "oil painting", "sketch", "lineart", "cel shaded", "digital art", "pixel art", "watercolor", "flat color", "manga", "ink wash"]
-  },
 
-  // --- PRIORITY 2: SUBJECT CORE ---
+  // --- PRIORITY 3: SUBJECT CORE ---
   {
     name: "Species & Race",
     tags: ["human", "elf", "dark elf", "half-elf", "demon", "succubus", "angel", "android", "cyborg", "mecha musume", "vampire", "kitsune", "catgirl", "wolf girl", "rabbit girl", "dragon girl", "orc", "goblin", "fairy", "ghost"]
@@ -28,7 +39,7 @@ export const defaultCategories: PromptCategoryDef[] = [
     tags: ["pale skin", "fair skin", "tan skin", "dark skin", "brown skin", "freckles", "scars", "facial mark", "beauty mark", "mole under eye", "tattoos", "tribal tattoos", "bioluminescent skin", "glistening skin", "oiled skin", "sweaty", "blush"]
   },
 
-  // --- PRIORITY 3: APPEARANCE ---
+  // --- PRIORITY 4: APPEARANCE ---
   {
     name: "Hair Style",
     tags: ["long hair", "very long hair", "short hair", "medium hair", "bob cut", "pixie cut", "hime cut", "blunt bangs", "ponytail", "high ponytail", "side ponytail", "twintails", "braids", "french braid", "crown braid", "messy hair", "wavy hair", "curly hair", "drill hair", "ahoge", "hair bun", "double bun", "hair over one eye", "bald"]
@@ -46,7 +57,7 @@ export const defaultCategories: PromptCategoryDef[] = [
     tags: ["smiling", "grin", "smug", "laughing", "embarrassed", "angry", "frowning", "pout", "expressionless", "yandere", "crazy", "ahegao", "blushing", "crying", "tearing up", "surprised", "scared", "nervous", "parted lips", "tongue out"]
   },
 
-  // --- PRIORITY 4: APPAREL (Mutually Exclusive Logic Applied Below) ---
+  // --- PRIORITY 5: APPAREL (Mutually Exclusive Logic Applied Below) ---
   {
     name: "Outfit - Full Body / Dresses",
     tags: ["sundress", "summer dress", "evening gown", "cocktail dress", "wedding dress", "strapless dress", "off-shoulder dress", "halter dress", "backless dress", "sweater dress", "slip dress", "china dress", "cheongsam", "dirndl", "gothic lolita dress", "maid dress", "nurse uniform", "nun habit", "one-piece swimsuit", "school swimsuit", "competitive swimsuit", "sling swimsuit", "monokini", "bodysuit", "leotard", "plugsuit", "wetsuit", "latex suit"]
@@ -68,7 +79,7 @@ export const defaultCategories: PromptCategoryDef[] = [
     tags: ["glasses", "sunglasses", "monocle", "goggles", "eyepatch", "choker", "collar", "necklace", "earrings", "piercings", "navel piercing", "cat ears", "animal ears", "halo", "horns", "demon horns", "mechanical wings", "angel wings", "bat wings", "headphones", "jewelry", "mask", "gas mask", "fox mask", "ribbon", "hat", "cap", "beret", "beanie", "witch hat"]
   },
 
-  // --- PRIORITY 5: POSE & CAMERA ---
+  // --- PRIORITY 6: POSE & CAMERA ---
   {
     name: "Pose",
     tags: ["standing", "sitting", "squatting", "kneeling", "lying down", "on stomach", "on back", "running", "walking", "jumping", "flying", "floating", "fighting stance", "reaching out", "arms crossed", "hands on hips", "peace sign", "selfie pose", "looking back", "contrapposto", "dynamic pose", "action pose", "foreshortening", "gesture drawing pose", "relaxed pose", "tension"]
@@ -78,7 +89,7 @@ export const defaultCategories: PromptCategoryDef[] = [
     tags: ["cowboy shot", "upper body", "full body", "close-up", "portrait", "face focus", "dutch angle", "from below", "from above", "overhead shot", "wide angle", "fisheye", "depth of field", "bokeh", "negative space", "leading lines"]
   },
 
-  // --- PRIORITY 6: ENVIRONMENT ---
+  // --- PRIORITY 7: ENVIRONMENT ---
   {
     name: "Location - Detailed",
     tags: ["cyberpunk city", "neon city", "fantasy forest", "enchanted forest", "bedroom", "messy bedroom", "cafe", "classroom", "ruins", "castle", "beach", "ocean", "outer space", "spaceship", "dungeon", "library", "street corner", "alleyway", "rooftop", "bar", "nightclub", "onsen"]

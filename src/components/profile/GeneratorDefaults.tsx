@@ -18,6 +18,8 @@ import { Toggle } from "@/components/ui/toggle";
 import { Badge } from "@/components/ui/badge";
 import { defaultCategories } from "@/lib/prompt-builder-data";
 import { cn } from "@/lib/utils";
+// Add catalogs for display or validation
+import { ALL_STYLES, SAFE_STYLES } from "@/lib/style-catalogs";
 
 export default function GeneratorDefaults() {
   const { session } = useSession();
@@ -65,8 +67,21 @@ export default function GeneratorDefaults() {
     let nextSel = new Set(current.selected || []);
     if (wasSelected) {
       nextSel.delete(tag);
+      // If deselecting theme/style, clear prefs when applicable
+      if (current.name === "Theme") setPrefs((p) => ({ ...p, selectedTheme: "any" }));
+      if (current.name === "Art Style") setPrefs((p) => ({ ...p, selectedStyle: "photorealistic" }));
     } else {
       nextSel.add(tag);
+
+      // NEW: Single-select for Theme and Art Style; sync top-level prefs for defaults
+      if (current.name === "Theme") {
+        nextSel = new Set([tag]);
+        setPrefs((p) => ({ ...p, selectedTheme: tag }));
+      }
+      if (current.name === "Art Style") {
+        nextSel = new Set([tag]);
+        setPrefs((p) => ({ ...p, selectedStyle: tag }));
+      }
 
       // Rule A: Full Body vs Parts
       if (current.name === "Outfit - Full Body / Dresses") {
@@ -81,12 +96,10 @@ export default function GeneratorDefaults() {
 
       // Rule C: Pose Conflict (Dynamic vs Static)
       if (current.name === "Pose") {
-        // Single selection for Pose
         nextSel = new Set([tag]);
         const tl = tag.toLowerCase();
         const dynamic = new Set(["running", "jumping", "flying", "action pose", "dynamic pose", "walking"]);
         const staticSet = new Set(["sitting", "kneeling", "lying down", "on stomach", "on back", "sleeping"]);
-
         if (dynamic.has(tl)) {
           removeTagInCategory("Pose", Array.from(staticSet));
         } else if (staticSet.has(tl)) {
@@ -111,7 +124,7 @@ export default function GeneratorDefaults() {
         removeTagInCategory("Hair Style", "bald");
       }
 
-      // Rule F: Eye Logic (closed eyes vs eye colors)
+      // Rule F: Eyes logic
       if (current.name === "Eyes") {
         const tl = tag.toLowerCase();
         const eyeColors = ["blue eyes","red eyes","green eyes","amber eyes","purple eyes","yellow eyes","pink eyes"];
@@ -293,6 +306,7 @@ export default function GeneratorDefaults() {
                   <div className="p-3 flex flex-wrap gap-2">
                     {cat.tags.map((tag) => {
                       const pressed = (cat.selected || []).includes(tag);
+                      const display = tag.replace(/_/g, " ");
                       return (
                         <Toggle
                           key={tag}
@@ -304,9 +318,9 @@ export default function GeneratorDefaults() {
                               ? "bg-violet-600 text-white border-violet-600"
                               : "bg-slate-800/50 text-slate-300 border-white/10 hover:bg-gray-700"
                           )}
-                          aria-label={tag}
+                          aria-label={display}
                         >
-                          {tag}
+                          {display}
                         </Toggle>
                       );
                     })}

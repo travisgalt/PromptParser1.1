@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { defaultCategories } from "@/lib/prompt-builder-data";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { SAFE_STYLES, ALL_STYLES, RESTRICTED_MODEL_IDS } from "@/lib/style-catalogs";
 
 export type ControlsState = {
   seed: number;
@@ -61,6 +62,11 @@ export const PromptControls: React.FC<Props> = ({
     onChange({ ...state, [key]: value });
   };
 
+  // NEW: helper to check model restriction
+  const isRestrictedModel = React.useMemo(() => {
+    return selectedModel ? RESTRICTED_MODEL_IDS.has(selectedModel.id) : false;
+  }, [selectedModel]);
+
   // NEW: toggle a builder tag within a category with strict guardrails
   const toggleBuilderTag = (catIndex: number, tag: string) => {
     const categories = state.promptBuilderCategories || defaultCategories.map((c) => ({ ...c, selected: [] }));
@@ -88,6 +94,19 @@ export const PromptControls: React.FC<Props> = ({
     } else {
       nextSel.add(tag);
 
+      // NEW: Single-select categories: Theme and Art Style
+      if (current.name === "Theme") {
+        // Only one theme; set selectedTheme accordingly
+        nextSel = new Set([tag]);
+        setField("selectedTheme", tag as ControlsState["selectedTheme"]);
+      }
+      if (current.name === "Art Style") {
+        // Only one style; set selectedStyle accordingly
+        // Enforce restricted styles visually (rendering handles allowed list)
+        nextSel = new Set([tag]);
+        setField("selectedStyle", tag);
+      }
+
       // Rule A: Full Body vs Parts
       if (current.name === "Outfit - Full Body / Dresses") {
         clearCategory("Outfit - Top");
@@ -109,10 +128,8 @@ export const PromptControls: React.FC<Props> = ({
         const staticSet = new Set(["sitting", "kneeling", "lying down", "on stomach", "on back", "sleeping"]);
 
         if (dynamic.has(tl)) {
-          // Remove static poses if any were selected
           removeTagInCategory("Pose", Array.from(staticSet));
         } else if (staticSet.has(tl)) {
-          // Remove dynamic poses
           removeTagInCategory("Pose", Array.from(dynamic));
         }
       }
@@ -355,57 +372,6 @@ export const PromptControls: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* Top row: Style and Theme side-by-side */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Style Select */}
-          <div className="space-y-2">
-            <Label>Style</Label>
-            <Select
-              value={state.selectedStyle}
-              onValueChange={(v) => setField("selectedStyle", v)}
-              disabled={filteredStyles.length === 0}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={filteredStyles.length === 0 ? "No styles available for this model" : "Select a Style"} />
-              </SelectTrigger>
-              <SelectContent>
-                {filteredStyles.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {s.replace(/_/g, " ")}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {filteredStyles.length === 0 && (
-              <div className="text-xs text-muted-foreground">
-                No styles found. Add or enable styles for this model in Admin → Styles.
-              </div>
-            )}
-          </div>
-
-          {/* Theme Select */}
-          <div className="space-y-2">
-            <Label>Theme</Label>
-            <Select value={state.selectedTheme} onValueChange={(v) => setField("selectedTheme", v as ControlsState["selectedTheme"])}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={dbThemes.length === 0 ? "No themes available for this model" : "Select a Theme"} />
-              </SelectTrigger>
-              <SelectContent>
-                {dbThemes.map((t) => (
-                  <SelectItem key={t.slug} value={t.slug}>
-                    {t.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {dbThemes.length === 0 && (
-              <div className="text-xs text-muted-foreground">
-                No themes found. Add or enable themes for this model in Admin → Themes.
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* Seed & Safe Mode */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -479,6 +445,14 @@ export const PromptControls: React.FC<Props> = ({
               const isOpen = openCats.includes(cat.name);
               const isActive = isOpen || count > 0;
 
+              // Compute tag list with model-based filtering for Art Style
+              const isArtStyle = cat.name === "Art Style";
+              const renderedTags = isArtStyle
+                ? (isRestrictedModel ? SAFE_STYLES : ALL_STYLES)
+                : cat.tags;
+
+              const showRestrictedNote = isArtStyle && isRestrictedModel;
+
               return (
                 <AccordionItem key={cat.name} value={cat.name} className="rounded-lg">
                   <AccordionTrigger
@@ -491,6 +465,9 @@ export const PromptControls: React.FC<Props> = ({
                     <div className="flex items-center justify-between w-full">
                       <span className="whitespace-normal break-words text-sm leading-tight">
                         {cat.name}
+                        {showRestrictedNote ? (
+                          <span className="ml-2 text-[11px] text-violet-300">(Filtered for Compatibility)</span>
+                        ) : null}
                       </span>
                       <Badge className="bg-slate-800/40 text-slate-400 border border-slate-700">
                         {count}
@@ -499,8 +476,9 @@ export const PromptControls: React.FC<Props> = ({
                   </AccordionTrigger>
                   <AccordionContent className="border border-white/10 rounded-md bg-white/5">
                     <div className="p-3 flex flex-wrap gap-2">
-                      {cat.tags.map((tag) => {
+                      {renderedTags.map((tag) => {
                         const pressed = (cat.selected || []).includes(tag);
+                        const display = tag.replace(/_/g, " "); // prettier labels for slugs
                         return (
                           <Toggle
                             key={tag}
@@ -512,9 +490,9 @@ export const PromptControls: React.FC<Props> = ({
                                 ? "bg-violet-600 text-white border-violet-600"
                                 : "bg-slate-800/50 text-slate-300 border-white/10 hover:bg-gray-700"
                             )}
-                            aria-label={tag}
+                            aria-label={display}
                           >
-                            {tag}
+                            {display}
                           </Toggle>
                         );
                       })}
