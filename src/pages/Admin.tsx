@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { showSuccess, showError } from "@/utils/toast";
 import { models } from "@/lib/model-data";
 import StylesManager from "@/components/admin/StylesManager";
+import ThemesManager from "@/components/admin/ThemesManager";
 
 // Types
 type ProfileRow = {
@@ -322,6 +323,7 @@ export default function Admin() {
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="negatives">Negative Keywords</TabsTrigger>
           <TabsTrigger value="styles">Styles</TabsTrigger>
+          <TabsTrigger value="themes">Themes</TabsTrigger>
         </TabsList>
 
         <TabsContent value="users">
@@ -428,6 +430,17 @@ export default function Admin() {
             </CardHeader>
             <CardContent className="space-y-4">
               <StylesManager />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="themes">
+          <Card>
+            <CardHeader>
+              <CardTitle>Themes Catalog</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ThemesManager />
             </CardContent>
           </Card>
         </TabsContent>
