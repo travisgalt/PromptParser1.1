@@ -62,7 +62,13 @@ export const PromptControls: React.FC<Props> = ({
     onChange({ ...state, [key]: value });
   };
 
-  // NEW: helper to check model restriction
+  // NEW: Compute selectedModel early so it's available to all downstream hooks
+  const selectedModel = React.useMemo(
+    () => models.find((m) => m.id === state.selectedModelId),
+    [state.selectedModelId]
+  );
+
+  // NEW: helper to check model restriction (uses early selectedModel)
   const isRestrictedModel = React.useMemo(() => {
     return selectedModel ? RESTRICTED_MODEL_IDS.has(selectedModel.id) : false;
   }, [selectedModel]);
