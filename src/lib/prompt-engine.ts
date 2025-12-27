@@ -40,6 +40,8 @@ export type GeneratorConfig = {
   selectedModelId: string;
   hairColor?: string;
   eyeColor?: string;
+  // ADDED: user-selected tags from Prompt Builder
+  extraTags?: string[];
 };
 
 export type GeneratedPrompt = {
@@ -473,7 +475,11 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
 
   // Compose positive and sanitize with active tags (base + modifiers)
   const nsfwIntent = selectedNSFW.find((t) => t.category === "intent")?.label;
-  let positive = `${nsfwIntent ? nsfwIntent + ", " : ""}${quality}, ${identity}, ${fashion}, ${scene}, ${tech}`;
+
+  // ADDED: append extraTags (user-selected) right after identity for stronger subject guidance
+  const userTags = (config.extraTags && config.extraTags.length) ? config.extraTags.join(", ") : "";
+
+  let positive = `${nsfwIntent ? nsfwIntent + ", " : ""}${quality}, ${identity}${userTags ? ", " + userTags : ""}, ${fashion}, ${scene}, ${tech}`;
   positive = sanitizePrompt(positive, [baseSpecies, ...modifiers]);
 
   // Negative

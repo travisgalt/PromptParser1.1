@@ -17,6 +17,10 @@ import { models } from "@/lib/model-data";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import useSubscription from "@/hooks/useSubscription";
 import PricingModal from "@/components/subscription/PricingModal";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+import { Toggle } from "@/components/ui/toggle";
+import { Badge } from "@/components/ui/badge";
+import { defaultCategories } from "@/lib/prompt-builder-data";
 
 export type ControlsState = {
   seed: number;
@@ -33,6 +37,8 @@ export type ControlsState = {
   eyeColor: string;  // already added earlier
   // ADDED: ADetailer toggle
   useADetailer: boolean;
+  // ADDED: prompt builder categories with selection state
+  promptBuilderCategories: { name: string; tags: string[]; selected: string[] }[];
 };
 
 type Props = {
@@ -61,6 +67,19 @@ export const PromptControls: React.FC<Props> = ({
     if (next.has(name)) next.delete(name);
     else next.add(name);
     setField("selectedSpecies", Array.from(next));
+  };
+
+  // NEW: toggle a builder tag within a category
+  const toggleBuilderTag = (catIndex: number, tag: string) => {
+    const categories = state.promptBuilderCategories || defaultCategories.map((c) => ({ ...c, selected: [] }));
+    const nextCategories = categories.map((c, idx) => {
+      if (idx !== catIndex) return c;
+      const sel = new Set(c.selected || []);
+      if (sel.has(tag)) sel.delete(tag);
+      else sel.add(tag);
+      return { ...c, selected: Array.from(sel) };
+    });
+    setField("promptBuilderCategories", nextCategories);
   };
 
   // NEW: detect login status
@@ -350,6 +369,46 @@ export const PromptControls: React.FC<Props> = ({
           <p className="text-xs text-muted-foreground">
             Random picks realistic hair colors in Photorealistic style; Anime allows all colors.
           </p>
+        </div>
+
+        {/* ADDED: Prompt Builder Categories */}
+        <div className="space-y-3">
+          <Label className="text-base">Prompt Builder</Label>
+          <Accordion type="multiple" className="w-full">
+            {(state.promptBuilderCategories || defaultCategories.map((c) => ({ ...c, selected: [] }))).map((cat, idx) => {
+              const count = (cat.selected || []).length;
+              return (
+                <AccordionItem key={cat.name} value={cat.name}>
+                  <AccordionTrigger className="flex items-center justify-between">
+                    <span className="text-sm">{cat.name}</span>
+                    <Badge className="bg-white/10 text-white border border-white/10">{count}</Badge>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="flex flex-wrap gap-2">
+                      {cat.tags.map((tag) => {
+                        const pressed = (cat.selected || []).includes(tag);
+                        return (
+                          <Toggle
+                            key={tag}
+                            pressed={pressed}
+                            onPressedChange={() => toggleBuilderTag(idx, tag)}
+                            className={`px-3 py-1.5 rounded-md border text-sm ${
+                              pressed
+                                ? "bg-violet-600/30 border-violet-600 text-white"
+                                : "bg-white/5 border-white/10 text-slate-300"
+                            }`}
+                            aria-label={tag}
+                          >
+                            {tag}
+                          </Toggle>
+                        );
+                      })}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
         </div>
 
         {/* Negative controls */}

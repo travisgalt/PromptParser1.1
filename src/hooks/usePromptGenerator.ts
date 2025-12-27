@@ -5,6 +5,7 @@ import { generatePrompt, type GeneratorConfig } from "@/lib/prompt-engine";
 import { parseControlsFromQuery } from "@/lib/url-state";
 import type { ControlsState } from "@/components/generator/PromptControls";
 import { supabase } from "@/integrations/supabase/client";
+import { defaultCategories } from "@/lib/prompt-builder-data";
 
 function randomSeed() {
   return Math.floor(Math.random() * 1_000_000_000);
@@ -24,7 +25,6 @@ type OutputState = {
 export function usePromptGenerator(opts?: { userId?: string }) {
   const initialControls = React.useMemo<ControlsState>(() => {
     const parsed = parseControlsFromQuery(window.location.search);
-
     const prefSafeRaw = typeof window !== "undefined" ? localStorage.getItem("pref_default_safemode") : null;
     const prefSafe =
       prefSafeRaw === "true" ? true :
@@ -44,8 +44,9 @@ export function usePromptGenerator(opts?: { userId?: string }) {
       height: 1024,
       hairColor: "Random",
       eyeColor: "Random",
-      // ADDED default
       useADetailer: true,
+      // ADDED: initialize categories with empty selection
+      promptBuilderCategories: defaultCategories.map((c) => ({ ...c, selected: [] })),
     };
   }, []);
 
@@ -96,7 +97,8 @@ export function usePromptGenerator(opts?: { userId?: string }) {
 
   // Generate initial output once on mount based on initial controls
   React.useEffect(() => {
-    const config = {
+    const extraTags = (controls.promptBuilderCategories || []).flatMap((c) => c.selected || []);
+    const config: GeneratorConfig = {
       seed: controls.seed,
       includeNegative: controls.includeNegative,
       negativeIntensity: controls.negativeIntensity,
@@ -107,6 +109,8 @@ export function usePromptGenerator(opts?: { userId?: string }) {
       selectedModelId: controls.selectedModelId,
       hairColor: controls.hairColor,
       eyeColor: controls.eyeColor,
+      // ADDED: pass user-selected tags
+      extraTags,
     };
     const result = generatePrompt(config);
     setPositive(result.positive);
@@ -124,7 +128,8 @@ export function usePromptGenerator(opts?: { userId?: string }) {
   const generate = React.useCallback((next?: ControlsState) => {
     const cur = next ?? controls;
     const newSeed = randomSeed();
-    const config = {
+    const extraTags = (cur.promptBuilderCategories || []).flatMap((c) => c.selected || []);
+    const config: GeneratorConfig = {
       seed: newSeed,
       includeNegative: cur.includeNegative,
       negativeIntensity: cur.negativeIntensity,
@@ -135,6 +140,8 @@ export function usePromptGenerator(opts?: { userId?: string }) {
       selectedModelId: cur.selectedModelId,
       hairColor: cur.hairColor,
       eyeColor: cur.eyeColor,
+      // ADDED
+      extraTags,
     };
     const result = generatePrompt(config);
 
