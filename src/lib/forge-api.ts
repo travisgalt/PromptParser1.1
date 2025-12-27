@@ -17,7 +17,11 @@ export async function generateImage(
     negative_prompt: negative,
     width,
     height,
-    model: modelFilename,
+    // CRITICAL: use override_settings to switch model and apply CLIP layers
+    override_settings: {
+      sd_model_checkpoint: modelFilename,
+      CLIP_stop_at_last_layers: 2,
+    },
   };
 
   // Include ADetailer block when enabled (simplified args format)
