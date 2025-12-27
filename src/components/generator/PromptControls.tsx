@@ -20,6 +20,7 @@ import { Toggle } from "@/components/ui/toggle";
 import { Badge } from "@/components/ui/badge";
 import { defaultCategories } from "@/lib/prompt-builder-data";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 export type ControlsState = {
   seed: number;
@@ -176,12 +177,36 @@ export const PromptControls: React.FC<Props> = ({
     () => models.find((m) => m.id === state.selectedModelId),
     [state.selectedModelId]
   );
+
+  // Load dynamic styles from DB (authenticated-only). Fallback to static list if none.
+  const [dbStyles, setDbStyles] = React.useState<string[] | null>(null);
+  React.useEffect(() => {
+    supabase
+      .from("styles")
+      .select("slug, enabled, compatible_models")
+      .then(({ data, error }) => {
+        if (error || !data) {
+          setDbStyles(null);
+          return;
+        }
+        const slugs = (data as any[])
+          .filter((row) => row.enabled !== false)
+          .filter((row) => {
+            const list: string[] = row.compatible_models || [];
+            return !selectedModel || list.length === 0 || list.includes(selectedModel.id);
+          })
+          .map((row) => row.slug);
+        setDbStyles(slugs.length ? slugs : null);
+      });
+  }, [selectedModel?.id]);
+
   const filteredStyles = React.useMemo(() => {
+    const source = dbStyles && dbStyles.length ? dbStyles : stylesList;
     if (selectedModel?.allowedStyles && selectedModel.allowedStyles.length > 0) {
-      return stylesList.filter((s) => selectedModel.allowedStyles!.includes(s));
+      return source.filter((s) => selectedModel.allowedStyles!.includes(s));
     }
-    return stylesList;
-  }, [selectedModel?.allowedStyles]);
+    return source;
+  }, [dbStyles, selectedModel?.allowedStyles]);
 
   // Auto-switch style and dimensions when model changes
   React.useEffect(() => {
