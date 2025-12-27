@@ -196,12 +196,6 @@ export const PromptControls: React.FC<Props> = ({
   const { isPro, isLoading: subLoading } = useSubscription();
   const [showUpgradeModal, setShowUpgradeModal] = React.useState(false);
 
-  // Derived: selected model and filtered styles based on allowedStyles
-  const selectedModel = React.useMemo(
-    () => models.find((m) => m.id === state.selectedModelId),
-    [state.selectedModelId]
-  );
-
   // REPLACED: Load dynamic styles from DB only (no static fallback), with realtime subscription
   const [dbStyles, setDbStyles] = React.useState<string[]>([]);
   const fetchDbStyles = React.useCallback(async () => {
