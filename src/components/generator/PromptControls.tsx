@@ -178,30 +178,47 @@ export const PromptControls: React.FC<Props> = ({
     [state.selectedModelId]
   );
 
-  // Load dynamic styles from DB (authenticated-only). Fallback to static list if none.
-  const [dbStyles, setDbStyles] = React.useState<string[] | null>(null);
-  React.useEffect(() => {
-    supabase
+  // REPLACED: Load dynamic styles from DB only (no static fallback), with realtime subscription
+  const [dbStyles, setDbStyles] = React.useState<string[]>([]);
+  const fetchDbStyles = React.useCallback(async () => {
+    const { data, error } = await supabase
       .from("styles")
-      .select("slug, enabled, compatible_models")
-      .then(({ data, error }) => {
-        if (error || !data) {
-          setDbStyles(null);
-          return;
-        }
-        const slugs = (data as any[])
-          .filter((row) => row.enabled !== false)
-          .filter((row) => {
-            const list: string[] = row.compatible_models || [];
-            return !selectedModel || list.length === 0 || list.includes(selectedModel.id);
-          })
-          .map((row) => row.slug);
-        setDbStyles(slugs.length ? slugs : null);
-      });
-  }, [selectedModel?.id]);
+      .select("slug, enabled, compatible_models");
+    if (error || !data) {
+      setDbStyles([]);
+      return;
+    }
+    const slugs = (data as any[])
+      .filter((row) => row.enabled !== false)
+      .filter((row) => {
+        const list: string[] = row.compatible_models || [];
+        // Show only styles compatible with the selected model
+        return !selectedModel || list.length === 0 ? false : list.includes(selectedModel.id);
+      })
+      .map((row) => row.slug);
+    setDbStyles(slugs);
+  }, [selectedModel]);
+
+  React.useEffect(() => {
+    fetchDbStyles();
+
+    // Realtime: update list on any change to styles
+    const channel = supabase
+      .channel("styles-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "styles" },
+        () => fetchDbStyles()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchDbStyles]);
 
   const filteredStyles = React.useMemo(() => {
-    const source = dbStyles && dbStyles.length ? dbStyles : stylesList;
+    const source = dbStyles;
     if (selectedModel?.allowedStyles && selectedModel.allowedStyles.length > 0) {
       return source.filter((s) => selectedModel.allowedStyles!.includes(s));
     }
@@ -305,9 +322,13 @@ export const PromptControls: React.FC<Props> = ({
           {/* Style Select */}
           <div className="space-y-2">
             <Label>Style</Label>
-            <Select value={state.selectedStyle} onValueChange={(v) => setField("selectedStyle", v)}>
+            <Select
+              value={state.selectedStyle}
+              onValueChange={(v) => setField("selectedStyle", v)}
+              disabled={filteredStyles.length === 0}
+            >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a Style" />
+                <SelectValue placeholder={filteredStyles.length === 0 ? "No styles available for this model" : "Select a Style"} />
               </SelectTrigger>
               <SelectContent>
                 {filteredStyles.map((s) => (
@@ -317,6 +338,11 @@ export const PromptControls: React.FC<Props> = ({
                 ))}
               </SelectContent>
             </Select>
+            {filteredStyles.length === 0 && (
+              <div className="text-xs text-muted-foreground">
+                No styles found. Add or enable styles for this model in Admin → Styles.
+              </div>
+            )}
           </div>
 
           {/* Theme Select */}
