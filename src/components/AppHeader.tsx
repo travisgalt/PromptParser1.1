@@ -3,57 +3,14 @@
 import * as React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useSession } from "@/components/auth/SessionProvider";
-import { supabase } from "@/integrations/supabase/client";
-import { LogIn, LogOut, Shield, User as UserIcon } from "lucide-react";
+import { LogIn } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 // import { ThemeToggle } from "@/components/ThemeToggle";
-import UserSettingsModal from "@/components/user/UserSettingsModal";
-
-type ProfileRow = {
-  display_name: string | null;
-  avatar_url: string | null;
-  is_admin?: boolean | null;
-};
 
 export const AppHeader: React.FC = () => {
   const { session } = useSession();
   const navigate = useNavigate();
-  const [profile, setProfile] = React.useState<ProfileRow | null>(null);
-  const [openSettings, setOpenSettings] = React.useState(false);
-
-  React.useEffect(() => {
-    const userId = session?.user?.id;
-    if (!userId) {
-      setProfile(null);
-      return;
-    }
-    supabase
-      .from("profiles")
-      .select("display_name, avatar_url, is_admin")
-      .eq("id", userId)
-      .single()
-      .then(({ data }) => {
-        setProfile(data as ProfileRow);
-      });
-  }, [session?.user?.id]);
-
-  const onSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
-  };
-
-  const initials =
-    (profile?.display_name || session?.user?.email || "U").slice(0, 2).toUpperCase();
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background">
@@ -72,40 +29,11 @@ export const AppHeader: React.FC = () => {
             </Button>
           </div>
         ) : (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center gap-2">
-                <Avatar className="h-6 w-6">
-                  {profile?.avatar_url ? (
-                    <AvatarImage src={profile.avatar_url} alt={profile.display_name || "Avatar"} />
-                  ) : null}
-                  <AvatarFallback>{initials}</AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="truncate">
-                {profile?.display_name || session.user.email}
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setOpenSettings(true)}>
-                <UserIcon className="mr-2 h-4 w-4" /> Profile
-              </DropdownMenuItem>
-              {profile?.is_admin ? (
-                <DropdownMenuItem onClick={() => navigate("/admin")}>
-                  <Shield className="mr-2 h-4 w-4" /> Admin
-                </DropdownMenuItem>
-              ) : null}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={onSignOut}>
-                <LogOut className="mr-2 h-4 w-4" /> Sign out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="text-sm text-muted-foreground">
+            {/* All user actions are available in the sidebar panel */}
+          </div>
         )}
       </div>
-      {/* User Settings Modal */}
-      <UserSettingsModal open={openSettings} onOpenChange={setOpenSettings} />
     </header>
   );
 };

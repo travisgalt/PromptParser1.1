@@ -48,6 +48,7 @@ const AppSidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     : undefined;
 
   const [promptCount, setPromptCount] = React.useState<number>(0);
+  const [isAdmin, setIsAdmin] = React.useState<boolean>(false);
 
   // Preferences (local-only for now)
   const [prefMedium, setPrefMedium] = React.useState<"photo" | "render">("photo");
@@ -71,8 +72,19 @@ const AppSidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         .then(({ count }) => {
           setPromptCount(typeof count === "number" ? count : 0);
         });
+
+      // Fetch admin flag for this user to show Admin action
+      supabase
+        .from("profiles")
+        .select("is_admin")
+        .eq("id", userId)
+        .single()
+        .then(({ data }) => {
+          setIsAdmin(!!data?.is_admin);
+        });
     } else {
       setPromptCount(0);
+      setIsAdmin(false);
     }
   }, [openSettings, userId]);
 
@@ -250,9 +262,16 @@ const AppSidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                   </Tabs>
 
                   <DialogFooter className="flex justify-between">
-                    <Button variant="outline" onClick={() => { setOpenSettings(false); navigate("/profile"); }}>
-                      View Profile
-                    </Button>
+                    <div className="flex gap-2">
+                      {isAdmin && (
+                        <Button variant="outline" onClick={() => { setOpenSettings(false); navigate("/admin"); }}>
+                          Admin
+                        </Button>
+                      )}
+                      <Button variant="outline" onClick={() => { setOpenSettings(false); navigate("/profile"); }}>
+                        View Profile
+                      </Button>
+                    </div>
                     <Button variant="destructive" onClick={onSignOut}>
                       Sign out
                     </Button>
