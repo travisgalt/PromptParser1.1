@@ -61,6 +61,10 @@ const AppSidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [promptCount, setPromptCount] = React.useState<number>(0);
   const [isAdmin, setIsAdmin] = React.useState<boolean>(false);
 
+  // FIX: Add missing preferences state
+  const [prefMedium, setPrefMedium] = React.useState<"photo" | "render">("photo");
+  const [prefSafeMode, setPrefSafeMode] = React.useState<boolean>(true);
+
   // ADDED: global preferences local state
   const [globalNegative, setGlobalNegative] = React.useState<string>("");
   const [autoSaveImages, setAutoSaveImages] = React.useState<boolean>(false);
