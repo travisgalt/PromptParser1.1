@@ -16,7 +16,27 @@ export type ThemeKey =
   | "post_apocalyptic"
   | "horror_gothic"
   | "noir"
-  | "school_life";
+  | "school_life"
+  // ADDED: Historical
+  | "victorian"
+  | "medieval"
+  | "feudal_japan"
+  | "ancient_egypt"
+  | "noir_1920s"
+  | "retro_1950s"
+  | "vaporwave_1980s"
+  // ADDED: Sci-Fi/Fantasy
+  | "space_opera"
+  | "solar_punk"
+  | "high_fantasy"
+  | "dark_fantasy"
+  | "dystopian"
+  // ADDED: Atmospheric
+  | "dreamcore"
+  | "liminal_space"
+  | "glitch_art"
+  | "psychedelic"
+  | "ethereal";
 
 export type OutfitItem = {
   label: string;
@@ -113,6 +133,7 @@ export const nsfwTokens: NSFWToken[] = [
 ];
 
 export const stylesList: string[] = [
+  // Existing
   "photorealistic",
   "anime",
   "3d_render",
@@ -121,6 +142,34 @@ export const stylesList: string[] = [
   "pixel_art",
   "comic_book",
   "line_art",
+  // ADDED: Traditional
+  "watercolor",
+  "ink_wash",
+  "charcoal_sketch",
+  "impasto_style",
+  "ukiyo_e",
+  "gouache",
+  "pastel",
+  "pencil_sketch",
+  // ADDED: Digital/3D
+  "unreal_engine_5",
+  "voxel_art",
+  "low_poly",
+  "vector_art",
+  "flat_design",
+  "isometric",
+  // ADDED: Photography (Realistic)
+  "analog_film",
+  "polaroid_style",
+  "cinematic",
+  "macro_photography",
+  "fisheye_lens",
+  // ADDED: Abstract/Art Movements
+  "surrealism",
+  "pop_art",
+  "art_deco",
+  "art_nouveau",
+  "stained_glass"
 ];
 
 export const themesList: ThemeKey[] = [
@@ -134,6 +183,26 @@ export const themesList: ThemeKey[] = [
   "horror_gothic",
   "noir",
   "school_life",
+  // ADDED: Historical
+  "victorian",
+  "medieval",
+  "feudal_japan",
+  "ancient_egypt",
+  "noir_1920s",
+  "retro_1950s",
+  "vaporwave_1980s",
+  // ADDED: Sci-Fi/Fantasy
+  "space_opera",
+  "solar_punk",
+  "high_fantasy",
+  "dark_fantasy",
+  "dystopian",
+  // ADDED: Atmospheric
+  "dreamcore",
+  "liminal_space",
+  "glitch_art",
+  "psychedelic",
+  "ethereal"
 ];
 
 export const speciesList: string[] = [

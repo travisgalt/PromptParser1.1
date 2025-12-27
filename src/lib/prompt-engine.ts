@@ -254,6 +254,78 @@ function applyStyleTags(style: string): string[] {
     case "line_art":
       styleTags = ["line art", "ink", "black and white", "manga"];
       break;
+    case "watercolor":
+      styleTags = ["watercolor", "paper texture", "washed pigments"];
+      break;
+    case "ink_wash":
+      styleTags = ["ink wash", "sumi-e", "monochrome ink"];
+      break;
+    case "charcoal_sketch":
+      styleTags = ["charcoal sketch", "grainy shading"];
+      break;
+    case "impasto_style":
+      styleTags = ["impasto", "thick paint", "visible strokes"];
+      break;
+    case "ukiyo_e":
+      styleTags = ["ukiyo-e", "woodblock print", "flat color"];
+      break;
+    case "gouache":
+      styleTags = ["gouache", "opaque watercolor"];
+      break;
+    case "pastel":
+      styleTags = ["pastel", "soft color palette", "chalk texture"];
+      break;
+    case "pencil_sketch":
+      styleTags = ["pencil sketch", "hand-drawn", "graphite lines"];
+      break;
+    case "unreal_engine_5":
+      styleTags = ["unreal engine 5", "high fidelity", "global illumination"];
+      break;
+    case "voxel_art":
+      styleTags = ["voxel art", "3d pixels", "cube style"];
+      break;
+    case "low_poly":
+      styleTags = ["low poly", "flat shading", "minimal geometry"];
+      break;
+    case "vector_art":
+      styleTags = ["vector art", "clean lines", "scalable graphics"];
+      break;
+    case "flat_design":
+      styleTags = ["flat design", "minimal shading", "bold shapes"];
+      break;
+    case "isometric":
+      styleTags = ["isometric", "axonometric projection"];
+      break;
+    case "analog_film":
+      styleTags = ["analog film", "grain", "vintage"];
+      break;
+    case "polaroid_style":
+      styleTags = ["polaroid", "instant film", "white border"];
+      break;
+    case "cinematic":
+      styleTags = ["cinematic", "film still", "anamorphic look"];
+      break;
+    case "macro_photography":
+      styleTags = ["macro", "extreme close-up", "shallow depth of field"];
+      break;
+    case "fisheye_lens":
+      styleTags = ["fisheye lens", "distorted perspective"];
+      break;
+    case "surrealism":
+      styleTags = ["surreal", "dreamlike", "symbolic composition"];
+      break;
+    case "pop_art":
+      styleTags = ["pop art", "bold colors", "comic halftone"];
+      break;
+    case "art_deco":
+      styleTags = ["art deco", "geometric motifs", "ornate"];
+      break;
+    case "art_nouveau":
+      styleTags = ["art nouveau", "organic curves", "ornamentation"];
+      break;
+    case "stained_glass":
+      styleTags = ["stained glass", "lead lines", "translucent color"];
+      break;
     default:
       styleTags = [];
   }
@@ -366,7 +438,9 @@ function resolveSpeciesConflicts(selectedRaw: string[] | undefined) {
 
 function filterByTheme<T extends { themes: ThemeKey[] }>(items: T[], theme: ThemeKey): T[] {
   if (theme === "any") return items;
-  return items.filter((i) => i.themes.includes("any") || i.themes.includes(theme));
+  const filtered = items.filter((i) => i.themes.includes("any") || i.themes.includes(theme));
+  // ADDED: If no items match the new theme, gracefully fall back to all items
+  return filtered.length ? filtered : items;
 }
 
 function prioritize<T extends { label: string }>(items: T[], matchers: RegExp[]): T[] {
