@@ -1,5 +1,8 @@
 import { showError } from "@/utils/toast";
 
+// ADDED: Environment-based API URL with fallback
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:7860/sdapi/v1/txt2img";
+
 export async function generateImage(
   positive: string,
   negative: string,
@@ -31,14 +34,11 @@ export async function generateImage(
     };
   }
 
-  // UPDATED: Correct endpoint and log full URL for debugging
-  const url = "/sdapi/v1/txt2img";
-  const fullUrl =
-    typeof window !== "undefined" ? `${window.location.origin}${url}` : url;
-  console.log("Forge API request URL:", fullUrl);
+  // UPDATED: Log the full URL being hit for debugging
+  console.log("Connecting to API:", API_URL);
 
   try {
-    const resp = await fetch(fullUrl, {
+    const resp = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -54,8 +54,8 @@ export async function generateImage(
         // Remove ADetailer and retry once
         delete payload.alwayson_scripts;
 
-        console.log("Forge API retry URL:", fullUrl);
-        const retryResp = await fetch(fullUrl, {
+        console.log("Connecting to API (retry without ADetailer):", API_URL);
+        const retryResp = await fetch(API_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -85,9 +85,9 @@ export async function generateImage(
       showError("ADetailer failed, generating without it");
       delete payload.alwayson_scripts;
 
-      console.log("Forge API retry URL (catch):", fullUrl);
+      console.log("Connecting to API (catch retry):", API_URL);
       try {
-        const retryResp = await fetch(fullUrl, {
+        const retryResp = await fetch(API_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
