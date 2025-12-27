@@ -9,41 +9,129 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { stylesList, themesList, speciesList, hairColors, eyeColors } from "@/lib/prompt-data";
-import { models } from "@/lib/model-data";
-import { Checkbox } from "@/components/ui/checkbox";
-import { showSuccess, showError } from "@/utils/toast";
+import { stylesList, themesList } from "@/lib/prompt-data";
 import { Sparkles } from "lucide-react";
+
+// ADDED imports for Prompt Builder UI
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+import { Toggle } from "@/components/ui/toggle";
+import { Badge } from "@/components/ui/badge";
+import { defaultCategories } from "@/lib/prompt-builder-data";
+import { cn } from "@/lib/utils";
 
 export default function GeneratorDefaults() {
   const { session } = useSession();
   const userId = session?.user?.id;
 
   const [prefs, setPrefs] = React.useState({
-    selectedModelId: "standard",
-    width: 1024,
-    height: 1024,
     selectedStyle: "photorealistic",
     selectedTheme: "any",
     safeMode: true,
-    selectedSpecies: ["human"] as string[],
-    hairColor: "Random",
-    eyeColor: "Random",
   });
 
   const setField = (key: keyof typeof prefs, value: any) => {
     setPrefs((p) => ({ ...p, [key]: value }));
   };
 
-  const toggleSpecies = (name: string) => {
-    setPrefs((p) => {
-      const next = new Set(p.selectedSpecies);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return { ...p, selectedSpecies: Array.from(next) };
-    });
+  // ADDED: local Prompt Builder defaults state
+  const [builder, setBuilder] = React.useState<{ name: string; tags: string[]; selected: string[] }[]>(
+    defaultCategories.map((c) => ({ ...c, selected: [] }))
+  );
+
+  // ADDED: accordion open state
+  const [openCats, setOpenCats] = React.useState<string[]>([]);
+
+  // ADDED: guardrail-aware tag toggle copied from main controls
+  const toggleBuilderTag = (catIndex: number, tag: string) => {
+    const categories = [...builder];
+    const current = categories[catIndex];
+    const wasSelected = (current.selected || []).includes(tag);
+
+    const findCat = (name: string) => categories.find((c) => c.name === name);
+    const setCatSelected = (name: string, next: string[]) => {
+      const idx = categories.findIndex((c) => c.name === name);
+      if (idx >= 0) categories[idx] = { ...categories[idx], selected: next };
+    };
+    const clearCategory = (name: string) => setCatSelected(name, []);
+    const removeTagInCategory = (name: string, tagsToRemove: string[] | string) => {
+      const arr = Array.isArray(tagsToRemove) ? tagsToRemove : [tagsToRemove];
+      const cat = findCat(name);
+      if (!cat) return;
+      const sel = new Set(cat.selected || []);
+      arr.forEach((t) => sel.delete(t));
+      setCatSelected(name, Array.from(sel));
+    };
+
+    let nextSel = new Set(current.selected || []);
+    if (wasSelected) {
+      nextSel.delete(tag);
+    } else {
+      nextSel.add(tag);
+
+      // Rule A: Full Body vs Parts
+      if (current.name === "Outfit - Full Body / Dresses") {
+        clearCategory("Outfit - Top");
+        clearCategory("Outfit - Bottom");
+      }
+
+      // Rule B: Parts vs Full Body
+      if (current.name === "Outfit - Top" || current.name === "Outfit - Bottom") {
+        clearCategory("Outfit - Full Body / Dresses");
+      }
+
+      // Rule C: Pose Conflict (Dynamic vs Static)
+      if (current.name === "Pose") {
+        // Single selection for Pose
+        nextSel = new Set([tag]);
+        const tl = tag.toLowerCase();
+        const dynamic = new Set(["running", "jumping", "flying", "action pose", "dynamic pose", "walking"]);
+        const staticSet = new Set(["sitting", "kneeling", "lying down", "on stomach", "on back", "sleeping"]);
+
+        if (dynamic.has(tl)) {
+          removeTagInCategory("Pose", Array.from(staticSet));
+        } else if (staticSet.has(tl)) {
+          removeTagInCategory("Pose", Array.from(dynamic));
+        }
+      }
+
+      // Rule D: Background Conflict (Simple vs Detailed)
+      if (current.name === "Background - Simple") {
+        clearCategory("Location - Detailed");
+      } else if (current.name === "Location - Detailed") {
+        clearCategory("Background - Simple");
+      }
+
+      // Rule E: Hair Logic (bald clears Hair Color)
+      if (current.name === "Hair Style" && tag.toLowerCase() === "bald") {
+        clearCategory("Hair Color");
+      } else if (current.name === "Hair Style" && tag.toLowerCase() !== "bald") {
+        removeTagInCategory("Hair Style", "bald");
+      }
+      if (current.name === "Hair Color") {
+        removeTagInCategory("Hair Style", "bald");
+      }
+
+      // Rule F: Eye Logic (closed eyes vs eye colors)
+      if (current.name === "Eyes") {
+        const tl = tag.toLowerCase();
+        const eyeColors = ["blue eyes","red eyes","green eyes","amber eyes","purple eyes","yellow eyes","pink eyes"];
+        if (tl === "closed eyes") {
+          const cat = findCat("Eyes");
+          if (cat) {
+            const filtered = (cat.selected || []).filter((t) => !eyeColors.includes(t.toLowerCase()));
+            nextSel = new Set(filtered.concat(["closed eyes"]));
+          }
+        } else if (eyeColors.includes(tl)) {
+          nextSel.delete("closed eyes");
+        }
+      }
+    }
+
+    categories[catIndex] = { ...current, selected: Array.from(nextSel) };
+    setBuilder(categories);
   };
 
+  // REPLACED: Load top-level defaults from profile; remove legacy flags/species/hair/eye/dimensions/model
   React.useEffect(() => {
     if (!userId) return;
     supabase
@@ -51,47 +139,66 @@ export default function GeneratorDefaults() {
       .select("default_settings")
       .eq("id", userId)
       .single()
-      .then(({ data, error }) => {
-        if (error) return;
+      .then(({ data }) => {
         const d = data?.default_settings;
         if (d) {
           setPrefs((p) => ({
             ...p,
-            selectedModelId: d.selectedModelId ?? p.selectedModelId,
-            width: d.width ?? p.width,
-            height: d.height ?? p.height,
             selectedStyle: d.selectedStyle ?? p.selectedStyle,
             selectedTheme: d.selectedTheme ?? p.selectedTheme,
             safeMode: typeof d.safeMode === "boolean" ? d.safeMode : p.safeMode,
-            selectedSpecies: Array.isArray(d.selectedSpecies) ? d.selectedSpecies : p.selectedSpecies,
-            hairColor: d.hairColor ?? p.hairColor,
-            eyeColor: d.eyeColor ?? p.eyeColor,
           }));
         }
       });
   }, [userId]);
+
+  // ADDED: Load builder defaults from localStorage when modal tab renders
+  React.useEffect(() => {
+    try {
+      const raw = localStorage.getItem("user_default_builder");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          // Basic shape check: has name, tags, selected
+          setBuilder(parsed);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const onSave = async () => {
     if (!userId) {
       showError("Please log in to save preferences.");
       return;
     }
+
+    // 1) Save Prompt Builder defaults to localStorage
+    try {
+      localStorage.setItem("user_default_builder", JSON.stringify(builder));
+    } catch {
+      showError("Failed to save local defaults.");
+      return;
+    }
+
+    // 2) Persist top-level prefs (style/theme/safe mode) to profile
     const { error } = await supabase
       .from("profiles")
       .update({ default_settings: prefs })
       .eq("id", userId);
+
     if (error) {
       showError("Failed to save preferences.");
       return;
     }
-    showSuccess("Default settings saved.");
+    showSuccess("Defaults saved. Your Prompt Builder selections will preload next time.");
   };
 
   if (!userId) {
     return <div className="text-sm text-muted-foreground">Please log in to manage your generator preferences.</div>;
   }
 
-  // No internal scrollbar; let modal body handle scrolling
   return (
     <div className="space-y-6">
       {/* Info Card - full width */}
@@ -103,46 +210,13 @@ export default function GeneratorDefaults() {
           <div>
             <h3 className="text-lg font-semibold text-white mb-2">Design Your Starting Point</h3>
             <p className="text-slate-300 leading-relaxed">
-              Tired of adjusting sliders every time you log in? Configure your perfect workspace below. We will automatically load these settings as your default 'Zero State' whenever you start a new session.
+              Pre-select tags like "Masterpiece", "Elf", "Blue Eyes", or "Cyberpunk City" and save them as your permanent starting state.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Model Checkpoint */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium text-slate-400">Model Checkpoint</Label>
-        <Select value={prefs.selectedModelId} onValueChange={(v) => setField("selectedModelId", v)}>
-          <SelectTrigger className="w-full bg-slate-900 border-slate-700 text-white">
-            <SelectValue placeholder="Select a Model" />
-          </SelectTrigger>
-          <SelectContent>
-            {models.map((m) => (
-              <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Dimensions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="width" className="text-sm font-medium text-slate-400">Width</Label>
-          <div className="flex items-center gap-3">
-            <Slider min={512} max={2048} step={8} value={[prefs.width]} onValueChange={(arr) => setField("width", arr[0] ?? prefs.width)} className="flex-1" />
-            <Input id="width" type="number" value={prefs.width} onChange={(e) => setField("width", Number(e.target.value || prefs.width))} className="w-24 bg-slate-900 border-slate-700 text-white rounded-md focus-visible:ring-2 focus-visible:ring-purple-500" />
-          </div>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="height" className="text-sm font-medium text-slate-400">Height</Label>
-          <div className="flex items-center gap-3">
-            <Slider min={512} max={2048} step={8} value={[prefs.height]} onValueChange={(arr) => setField("height", arr[0] ?? prefs.height)} className="flex-1" />
-            <Input id="height" type="number" value={prefs.height} onChange={(e) => setField("height", Number(e.target.value || prefs.height))} className="w-24 bg-slate-900 border-slate-700 text-white rounded-md focus-visible:ring-2 focus-visible:ring-purple-500" />
-          </div>
-        </div>
-      </div>
-
-      {/* Style & Theme */}
+      {/* Top-level Style & Theme */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label className="text-sm font-medium text-slate-400">Style</Label>
@@ -178,64 +252,70 @@ export default function GeneratorDefaults() {
           <Label className="text-sm font-medium text-slate-400">Safe Mode</Label>
           <Switch checked={prefs.safeMode} onCheckedChange={(c) => setField("safeMode", c)} />
         </div>
+        <p className="text-xs text-muted-foreground">
+          Filters sensitive accessories and tokens in generation.
+        </p>
       </div>
 
-      {/* Character Settings */}
-      <div className="space-y-4">
-        <Label className="text-base text-slate-300">Character Settings</Label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {speciesList.map((sp) => {
-            const id = `species-${sp.replace(/\s+/g, "-")}`;
-            const checked = prefs.selectedSpecies.includes(sp);
+      {/* Mini Prompt Builder */}
+      <div className="space-y-2">
+        <Label className="text-base text-slate-300">Prompt Builder</Label>
+        <Accordion
+          type="multiple"
+          value={openCats}
+          onValueChange={(vals: string | string[]) => setOpenCats(Array.isArray(vals) ? vals : [vals])}
+          className="grid grid-cols-1 md:grid-cols-2 gap-3"
+        >
+          {builder.map((cat, idx) => {
+            const count = (cat.selected || []).length;
+            const isOpen = openCats.includes(cat.name);
+            const isActive = isOpen || count > 0;
+
             return (
-              <div key={sp} className="flex items-center space-x-2">
-                <Checkbox
-                  id={id}
-                  checked={checked}
-                  onCheckedChange={() => toggleSpecies(sp)}
-                  className="data-[state=checked]:bg-violet-600 data-[state=checked]:border-violet-600 focus-visible:ring-violet-600"
-                />
-                <Label htmlFor={id} className="capitalize text-sm font-medium text-slate-400">{sp}</Label>
-              </div>
+              <AccordionItem key={cat.name} value={cat.name} className="rounded-lg">
+                <AccordionTrigger
+                  className={cn(
+                    "px-3 py-2 rounded-md border bg-slate-800/60 text-slate-200 text-sm",
+                    "hover:bg-slate-800/80",
+                    isActive ? "border-violet-600/50 shadow-[0_0_0_1px_rgba(139,92,246,0.35)]" : "border-white/10"
+                  )}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className="whitespace-normal break-words text-sm leading-tight">
+                      {cat.name}
+                    </span>
+                    <Badge className="bg-slate-800/40 text-slate-400 border border-slate-700">
+                      {count}
+                    </Badge>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="border border-white/10 rounded-md bg-white/5">
+                  <div className="p-3 flex flex-wrap gap-2">
+                    {cat.tags.map((tag) => {
+                      const pressed = (cat.selected || []).includes(tag);
+                      return (
+                        <Toggle
+                          key={tag}
+                          pressed={pressed}
+                          onPressedChange={() => toggleBuilderTag(idx, tag)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-full border text-xs md:text-sm cursor-pointer transition-colors",
+                            pressed
+                              ? "bg-violet-600 text-white border-violet-600"
+                              : "bg-slate-800/50 text-slate-300 border-white/10 hover:bg-gray-700"
+                          )}
+                          aria-label={tag}
+                        >
+                          {tag}
+                        </Toggle>
+                      );
+                    })}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
             );
           })}
-        </div>
-      </div>
-
-      {/* Appearance */}
-      <div className="space-y-4">
-        <Label className="text-base text-slate-300">Appearance</Label>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-slate-400">Hair Color</Label>
-            <Select value={prefs.hairColor} onValueChange={(v) => setField("hairColor", v)}>
-              <SelectTrigger className="w-full bg-slate-900 border-slate-700 text-white">
-                <SelectValue placeholder="Select Hair Color" />
-              </SelectTrigger>
-              <SelectContent>
-                {hairColors.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-slate-400">Eye Color</Label>
-            <Select value={prefs.eyeColor} onValueChange={(v) => setField("eyeColor", v)}>
-              <SelectTrigger className="w-full bg-slate-900 border-slate-700 text-white">
-                <SelectValue placeholder="Select Eye Color" />
-              </SelectTrigger>
-              <SelectContent>
-                {eyeColors.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          These defaults will be applied automatically when you log in.
-        </p>
+        </Accordion>
       </div>
 
       <Button className="w-full bg-violet-600 text-white" onClick={onSave}>
