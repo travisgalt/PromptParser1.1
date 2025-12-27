@@ -58,19 +58,23 @@ export function usePromptGenerator(opts?: { userId?: string }) {
   const [lastContext, setLastContext] = React.useState<{ medium?: any; scenario?: any } | undefined>(undefined);
 
   // ADDED: recent memory to reduce repetition (recency window = 2)
-  const [recent, setRecent] = React.useState<{
-    hairStyle?: string[];
-    body?: string[];
-    expression?: string[];
-    outfit?: string[];
-    background?: string[];
-    lighting?: string[];
-    pose?: string[];
-    accessories?: string[];
-  }>({});
+  const [recent, setRecent] = React.useState<RecentState>({});
 
   // NEW: resolved theme tags for current selection
   const [themeTags, setThemeTags] = React.useState<{ positive: string[]; negative?: string[] } | null>(null);
+
+  // Define as a function (hoisted) to ensure availability across effects
+  function pushRecent(key: keyof RecentState, value: string | string[]) {
+    setRecent((prev) => {
+      const arr = Array.isArray(value) ? value : [value];
+      const merged = [...(prev[key] ?? []), ...arr];
+      const uniq: string[] = [];
+      for (const v of merged) {
+        if (!uniq.includes(v)) uniq.push(v);
+      }
+      return { ...prev, [key]: uniq.slice(-2) };
+    });
+  }
 
   // Fetch theme tags when theme or model changes
   React.useEffect(() => {
