@@ -59,7 +59,7 @@ export const PromptControls: React.FC<Props> = ({
     onChange({ ...state, [key]: value });
   };
 
-  // NEW: toggle a builder tag within a category with conflict resolution
+  // NEW: toggle a builder tag within a category with strict guardrails
   const toggleBuilderTag = (catIndex: number, tag: string) => {
     const categories = state.promptBuilderCategories || defaultCategories.map((c) => ({ ...c, selected: [] }));
     const current = categories[catIndex];
@@ -70,6 +70,7 @@ export const PromptControls: React.FC<Props> = ({
       const idx = categories.findIndex((c) => c.name === name);
       if (idx >= 0) categories[idx] = { ...categories[idx], selected: next };
     };
+    const clearCategory = (name: string) => setCatSelected(name, []);
     const removeTagInCategory = (name: string, tagsToRemove: string[] | string) => {
       const arr = Array.isArray(tagsToRemove) ? tagsToRemove : [tagsToRemove];
       const cat = findCat(name);
@@ -78,7 +79,6 @@ export const PromptControls: React.FC<Props> = ({
       arr.forEach((t) => sel.delete(t));
       setCatSelected(name, Array.from(sel));
     };
-    const clearCategory = (name: string) => setCatSelected(name, []);
 
     let nextSel = new Set(current.selected || []);
     if (wasSelected) {
@@ -86,20 +86,43 @@ export const PromptControls: React.FC<Props> = ({
     } else {
       nextSel.add(tag);
 
-      // Pose exclusivity + movement/static rules
-      if (current.name === "Pose (Mutually Exclusive)") {
+      // Rule A: Full Body vs Parts
+      if (current.name === "Outfit - Full Body / Dresses") {
+        clearCategory("Outfit - Top");
+        clearCategory("Outfit - Bottom");
+      }
+
+      // Rule B: Parts vs Full Body
+      if (current.name === "Outfit - Top" || current.name === "Outfit - Bottom") {
+        clearCategory("Outfit - Full Body / Dresses");
+      }
+
+      // Rule C: Pose Conflict (Dynamic vs Static)
+      if (current.name === "Pose") {
+        // Make Pose mutually exclusive (single selection)
         nextSel = new Set([tag]);
-        const movement = new Set(["running", "walking", "jumping", "flying"]);
-        const staticSet = new Set(["sitting", "kneeling", "lying down", "on stomach", "on back"]);
-        if (movement.has(tag)) {
-          nextSel = new Set([tag]);
-        }
-        if (tag === "sitting") {
-          nextSel = new Set([tag]);
+
+        const tl = tag.toLowerCase();
+        const dynamic = new Set(["running", "jumping", "flying", "action pose", "dynamic pose", "walking"]);
+        const staticSet = new Set(["sitting", "kneeling", "lying down", "on stomach", "on back", "sleeping"]);
+
+        if (dynamic.has(tl)) {
+          // Remove static poses if any were selected
+          removeTagInCategory("Pose", Array.from(staticSet));
+        } else if (staticSet.has(tl)) {
+          // Remove dynamic poses
+          removeTagInCategory("Pose", Array.from(dynamic));
         }
       }
 
-      // Hair logic: bald vs hair
+      // Rule D: Background Conflict (Simple vs Detailed)
+      if (current.name === "Background - Simple") {
+        clearCategory("Location - Detailed");
+      } else if (current.name === "Location - Detailed") {
+        clearCategory("Background - Simple");
+      }
+
+      // Rule E: Hair Logic (bald clears Hair Style & Hair Color)
       if (current.name === "Hair Style" && tag.toLowerCase() === "bald") {
         clearCategory("Hair Color");
       } else if (current.name === "Hair Style" && tag.toLowerCase() !== "bald") {
@@ -109,19 +132,7 @@ export const PromptControls: React.FC<Props> = ({
         removeTagInCategory("Hair Style", "bald");
       }
 
-      // Background vs Location clarity
-      const isSimpleBackgroundTag =
-        (current.name === "Location - Detailed" && tag.toLowerCase() === "simple background") ||
-        current.name === "Background - Simple";
-      if (isSimpleBackgroundTag) {
-        clearCategory("Location - Detailed");
-      }
-      if (current.name === "Location - Detailed" && tag.toLowerCase() !== "simple background") {
-        clearCategory("Background - Simple");
-        removeTagInCategory("Location - Detailed", "simple background");
-      }
-
-      // Eyes: closed vs colors
+      // Rule F: Eye Logic (closed eyes clears specific eye colors)
       if (current.name === "Eyes") {
         const tl = tag.toLowerCase();
         const eyeColors = ["blue eyes","red eyes","green eyes","amber eyes","purple eyes","yellow eyes","pink eyes"];
@@ -134,16 +145,6 @@ export const PromptControls: React.FC<Props> = ({
         } else if (eyeColors.includes(tl)) {
           nextSel.delete("closed eyes");
         }
-      }
-
-      // NEW: Full Body vs Parts conflict resolution
-      if (current.name === "Outfit - Full Body / Dresses") {
-        // Selecting any full-body outfit clears separate tops and bottoms
-        clearCategory("Outfit - Top");
-        clearCategory("Outfit - Bottom");
-      } else if (current.name === "Outfit - Top" || current.name === "Outfit - Bottom") {
-        // Selecting a top or bottom clears full-body outfits
-        clearCategory("Outfit - Full Body / Dresses");
       }
     }
 
