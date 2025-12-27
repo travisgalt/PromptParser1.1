@@ -44,6 +44,83 @@ export type GeneratorConfig = {
   extraTags?: string[];
 };
 
+// Helper: normalize tags to lowercase for matching
+function norm(s: string) {
+  return s.toLowerCase().trim();
+}
+
+// Category sets to recognize user-selected tags
+const CORE_BODY_TAGS = new Set(["athletic","curvy","petite","muscular","slender","voluptuous","tall","chibi"]);
+const CORE_HAIR_STYLE_TAGS = new Set(["long hair","short hair","bob cut","pixie cut","ponytail","twintails","messy hair","braids","wavy hair","drills","ahoge"]);
+const CORE_HAIR_COLOR_TAGS = new Set(["blonde","black hair","brown hair","red hair","white hair","silver hair","pastel pink","blue hair","multicolored hair","gradient hair"]);
+const CORE_EYE_TAGS = new Set(["blue eyes","red eyes","green eyes","heterochromia","glowing eyes","tsurime","tareme","closed eyes"]);
+const CORE_EXPRESSION_TAGS = new Set(["smiling","smug","embarrassed","angry","expressionless","yandere","blushing","crying","surprised","parted lips"]);
+
+const CAMERA_TAGS = new Set(["cowboy shot","upper body","full body","close-up","portrait","dutch angle","from below","from above","wide angle","fisheye"]);
+const ART_STYLE_TAGS = new Set(["anime","realistic","semi-realistic","oil painting","sketch","lineart","cel shaded","digital art","pixel art","watercolor","flat color"]);
+const QUALITY_TAGS_SET = new Set(["masterpiece","best quality","highres","8k","highly detailed","sharp focus","hdr","absurdres"]);
+
+const LOCATION_TAGS = new Set(["cyberpunk city","fantasy forest","bedroom","cafe","classroom","ruins","beach","outer space","dungeon","library","street corner"]);
+const SIMPLE_BG_TAGS = new Set(["simple background","white background","black background","solid color","two-tone background","gradient background","abstract background","geometric pattern","polka dots","blurred background","bokeh","minimalist"]);
+const LIGHTING_TAGS = new Set(["cinematic lighting","natural light","volumetric lighting","neon lights","rim lighting","sunset","golden hour","dark and moody","god rays","studio lighting","soft lighting"]);
+
+// Mapping from body tag to internal bodyTypes string
+const BODY_MAP: Record<string, string> = {
+  athletic: "athletic build, toned",
+  muscular: "athletic build, toned",
+  curvy: "curvy body, thick thighs",
+  petite: "petite figure",
+  slender: "slender body",
+  voluptuous: "curvy body, thick thighs",
+  tall: "tall figure",
+  chibi: "petite figure",
+};
+
+// Background tag to matching regex for our backgrounds list
+const BG_REGEX_MAP: Record<string, RegExp[]> = {
+  "cyberpunk city": [/neon/i, /city/i],
+  "fantasy forest": [/forest/i, /castle/i], // approximate
+  bedroom: [/bedroom/i, /hotel/i],
+  cafe: [/coffee shop/i, /cafe/i],
+  classroom: [/classroom/i],
+  ruins: [/wasteland/i, /ruins/i],
+  beach: [/beach/i, /sand/i], // approximate
+  "outer space": [/space station/i, /space/i],
+  dungeon: [/castle/i, /gothic/i],
+  library: [/library/i], // none exact; keep approximate
+  "street corner": [/street/i, /alley/i],
+};
+
+// Camera overrides helpers
+function matchShotOverride(tags: string[]): string | undefined {
+  const order = ["close-up","portrait","upper body","cowboy shot","full body","wide angle","fisheye"];
+  const sel = new Set(tags.map(norm));
+  return order.find((t) => sel.has(t));
+}
+function matchAngleOverride(tags: string[]): string | undefined {
+  const order = ["dutch angle","from below","from above"];
+  const sel = new Set(tags.map(norm));
+  return order.find((t) => sel.has(t));
+}
+
+// Build negatives for opposites (conservative)
+function negativesForLocks(lockBody?: string): string[] {
+  const negs: string[] = [];
+  if (lockBody) {
+    const n = norm(lockBody);
+    if (n.includes("muscular") || n.includes("athletic")) {
+      negs.push("slender body");
+    } else if (n.includes("curvy") || n.includes("voluptuous")) {
+      negs.push("slender body");
+    } else if (n.includes("petite")) {
+      negs.push("tall figure");
+    } else if (n.includes("tall")) {
+      negs.push("petite figure");
+    }
+  }
+  return negs;
+}
+
 export type GeneratedPrompt = {
   positive: string;
   negative?: string;
@@ -300,6 +377,9 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   const style = config.style ?? "photorealistic";
   const theme = config.theme ?? ("any" as ThemeKey);
 
+  // Normalize user tags once
+  const extra = (config.extraTags ?? []).map(norm);
+
   // Resolve species and modifiers from user selections before generation
   const { base: baseSpecies, modifiers } = resolveSpeciesConflicts(config.allowedSpecies);
 
@@ -315,30 +395,67 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   } else if (theme === "cyberpunk") {
     bgPool = prioritize(bgPool, [/neon/i, /rain/i]);
   }
-  const bg = bgPool.length ? pickOne(rng, bgPool) : pickOne(rng, filterByTheme(backgrounds, theme));
-  const lighting = deriveLighting(bg, rng);
+
+  // Optional background override from user tags
+  const userBgTag = extra.find((t) => LOCATION_TAGS.has(t) || SIMPLE_BG_TAGS.has(t));
+  let bg: BackgroundItem;
+  if (userBgTag && LOCATION_TAGS.has(userBgTag)) {
+    const regexes = BG_REGEX_MAP[userBgTag] ?? [];
+    const matches = bgPool.filter((b) => regexes.some((re) => re.test(b.label)));
+    bg = matches.length ? pickOne(rng, matches) : (bgPool.length ? pickOne(rng, bgPool) : pickOne(rng, filterByTheme(backgrounds, theme)));
+  } else {
+    bg = bgPool.length ? pickOne(rng, bgPool) : pickOne(rng, filterByTheme(backgrounds, theme));
+  }
+
+  // Lighting: base then allow user override
+  let lighting = deriveLighting(bg, rng);
+  const userLightTag = extra.find((t) => LIGHTING_TAGS.has(t));
+  if (userLightTag) {
+    lighting = userLightTag;
+  }
 
   // Base selections
   let quality = applyStyleTags(style).join(", ");
+  // Quality boosters selected by user: append early
+  const qualityBoosters = extra.filter((t) => QUALITY_TAGS_SET.has(t));
+  if (qualityBoosters.length) {
+    quality = `${qualityBoosters.join(", ")}, ${quality}`;
+  }
+
   const model = models.find((m) => m.id === config.selectedModelId);
   if (model?.triggerPrefix) {
     quality = `${model.triggerPrefix}, ${quality}`;
   }
 
-  // UPDATED: Use new color logic (keep hairstyle separate for flavor)
-  const hairStyle = pickOne(rng, hairStyles);
-  const hairColorTag = resolveHairColorTag(style, config.hairColor, rng);
-  const eyeColorTag = resolveEyeColorTag(style, config.eyeColor, rng);
+  // CORE OVERRIDES: Body, Hair Style, Hair/Eye colors, Expression
+  const userBodyTag = extra.find((t) => CORE_BODY_TAGS.has(t));
+  const body = userBodyTag ? (BODY_MAP[userBodyTag] ?? userBodyTag) : pickOne(rng, bodyTypes);
 
-  const body = pickOne(rng, bodyTypes);
-  const expression = pickExpression(scenario, rng);
+  const userHairStyle = extra.find((t) => CORE_HAIR_STYLE_TAGS.has(t));
+  const hairStyle = userHairStyle ? userHairStyle : pickOne(rng, hairStyles);
+
+  // Hair Color: prefer Prompt Builder selection over dropdown if present
+  const userHairColor = extra.find((t) => CORE_HAIR_COLOR_TAGS.has(t));
+  const hairColorTag = userHairColor
+    ? `${userHairColor.includes("hair") ? userHairColor : userHairColor + " hair"}`
+    : resolveHairColorTag(style, config.hairColor, rng);
+
+  // Eyes: handle heterochromia special, else direct color override
+  const userEyes = extra.find((t) => CORE_EYE_TAGS.has(t));
+  const eyeColorTag = userEyes
+    ? (userEyes === "heterochromia" ? "heterochromia, mismatching pupils" : userEyes)
+    : resolveEyeColorTag(style, config.eyeColor, rng);
+
+  // Expression override
+  const userExpr = extra.find((t) => CORE_EXPRESSION_TAGS.has(t));
+  const expression = userExpr ? userExpr : pickExpression(scenario, rng);
 
   // Select NSFW tokens early (Safe Mode OFF) to factor coverage into pocket logic
   const selectedNSFW = selectNSFWTokens({
     safeMode: config.safeMode,
     style,
     theme,
-    basePoseLabel: "", // pick coverage/location/lighting without pose dependency
+    basePoseLabel: "",
   });
 
   // Theme-filtered outfits + constraints
@@ -366,18 +483,9 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
     hasPocketsEffective = hasPocketsEffective || !!selectedOw?.hasPockets;
   }
 
-  // Coverage override: garments without pockets (e.g., lingerie, negligee, bikini) disable pocket use
-  const noPocketCoverage = new Set([
-    "lingerie",
-    "negligee",
-    "bikini",
-    "sheer fabric",
-    "lace lingerie",
-    "silk robe",
-  ]);
-  const nsfwCoverageLabels = selectedNSFW
-    .filter((t) => t.category === "coverage")
-    .map((t) => t.label.toLowerCase());
+  // Coverage override: garments without pockets disable pocket use
+  const noPocketCoverage = new Set(["lingerie","negligee","bikini","sheer fabric","lace lingerie","silk robe"]);
+  const nsfwCoverageLabels = selectedNSFW.filter((t) => t.category === "coverage").map((t) => t.label.toLowerCase());
   if (nsfwCoverageLabels.some((lbl) => noPocketCoverage.has(lbl))) {
     hasPocketsEffective = false;
   }
@@ -400,8 +508,12 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   // Tech terms based on style
   let tech = style === "photorealistic" ? pickOne(rng, photoTech) : pickOne(rng, renderTech);
 
-  // CAMERA LOGIC (Only for photorealistic)
-  const { shotType, cameraAngle, lens } = pickCameraLogic(style, pose, rng);
+  // CAMERA LOGIC override based on user tags (Only for photorealistic lens guidance)
+  let { shotType, cameraAngle, lens } = pickCameraLogic(style, pose, rng);
+  const shotOverride = matchShotOverride(extra.filter((t) => CAMERA_TAGS.has(t)));
+  const angleOverride = matchAngleOverride(extra.filter((t) => CAMERA_TAGS.has(t)));
+  if (shotOverride) shotType = shotOverride;
+  if (angleOverride) cameraAngle = angleOverride;
   if (shotType && cameraAngle && lens) {
     tech = `${tech}, ${shotType}, ${cameraAngle}, ${lens}`;
   }
@@ -434,7 +546,7 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
       speciesTags = "cat ears, tail, nekomimi";
       break;
     default:
-      speciesTags = ""; // human or unspecified
+      speciesTags = "";
   }
 
   // Hybrid modifiers overlay (android/cyborg)
@@ -455,35 +567,37 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   // ADJUSTED: Place hair/eye color early after character/species tags
   const identity = `1girl, solo${speciesTags ? ", " + speciesTags : ""}${hairColorTag ? ", " + hairColorTag : ""}${eyeColorTag ? ", " + eyeColorTag : ""}, ${body}, ${hairStyle}, ${expression}, ${pose.label}`;
 
-  // selectedNSFW already computed above
-
-  // Fashion composition
+  // Fashion composition + include NSFW coverage and user apparel selections (avoid duplicates)
   const fashionParts: string[] = [outfit.label];
   if (layeredOuterwear) fashionParts.push(layeredOuterwear);
   if (layeredFootwear) fashionParts.push(layeredFootwear);
   if (acc.length) fashionParts.push(...acc.map((a) => a.label));
-  // coverage tokens integrate with fashion
-  selectedNSFW
-    .filter((t) => t.category === "coverage")
-    .forEach((t) => fashionParts.push(t.label));
-  const fashion = fashionParts.join(", ");
+  selectedNSFW.filter((t) => t.category === "coverage").forEach((t) => fashionParts.push(t.label));
 
-  // Scene (append optional nsfw location/lighting descriptors)
+  // Append remaining user tags that are not already expressed in core identity (avoid duplicates)
+  const coreUsed = new Set<string>([
+    norm(body),
+    norm(hairStyle),
+    norm(hairColorTag),
+    norm(eyeColorTag),
+    norm(expression),
+  ]);
+  const extraClean = extra.filter((t) => !coreUsed.has(t));
+  const userTagsStr = extraClean.length ? extraClean.join(", ") : "";
+
+  // Scene (append optional nsfw location/lighting descriptors and user overrides already applied above)
   const nsfwLocation = selectedNSFW.find((t) => t.category === "location")?.label;
   const nsfwLight = selectedNSFW.find((t) => t.category === "lighting")?.label;
   const scene = `${bg.label}${nsfwLocation ? ", " + nsfwLocation : ""}, ${lighting}${nsfwLight ? ", " + nsfwLight : ""}`;
 
-  // Compose positive and sanitize with active tags (base + modifiers)
+  // Compose positive and sanitize
   const nsfwIntent = selectedNSFW.find((t) => t.category === "intent")?.label;
-
-  // ADDED: append extraTags (user-selected) right after identity for stronger subject guidance
-  const userTags = (config.extraTags && config.extraTags.length) ? config.extraTags.join(", ") : "";
-
-  let positive = `${nsfwIntent ? nsfwIntent + ", " : ""}${quality}, ${identity}${userTags ? ", " + userTags : ""}, ${fashion}, ${scene}, ${tech}`;
+  let positive = `${nsfwIntent ? nsfwIntent + ", " : ""}${quality}, ${identity}${userTagsStr ? ", " + userTagsStr : ""}, ${fashionParts.join(", ")}, ${scene}, ${tech}`;
   positive = sanitizePrompt(positive, [baseSpecies, ...modifiers]);
 
-  // Negative
+  // Negative with optional opposites for hard-locked body type
   let negative: string | undefined;
+  const extraNegatives = negativesForLocks(userBodyTag);
   if (config.includeNegative) {
     if (model?.id === "pony-v6" && model.negativeDefault) {
       negative = model.negativeDefault;
@@ -492,12 +606,18 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
         style === "photorealistic" ? "photo" :
         style === "3d_render" ? "render" :
         undefined;
-      negative = generateNegativePrompt(
+      const baseNeg = generateNegativePrompt(
         config.negativeIntensity,
         undefined,
         config.seed,
         { medium: mediumForContext as Medium | undefined, scenario }
       );
+      if (extraNegatives.length) {
+        const extras = extraNegatives.map((n) => `(${n}:${config.negativeIntensity.toFixed(2)})`).join(", ");
+        negative = `${baseNeg}, ${extras}`;
+      } else {
+        negative = baseNeg;
+      }
     }
   }
 
