@@ -60,9 +60,15 @@ const CORE_EXPRESSION_TAGS = new Set(["smiling","smug","embarrassed","angry","ex
 const SKIN_TAGS = new Set(["pale skin","tan skin","dark skin","freckles","scars","tattoos","makeup","glistening skin","oiled skin","blush"]);
 
 // ADDED: Apparel sets (tops, bottoms, accessories)
-const TOP_TAGS = new Set(["hoodie","t-shirt","oversized shirt","crop top","sweater","tank top","armored plate","kimono","school uniform","leather jacket"]);
-const BOTTOM_TAGS = new Set(["jeans","pleated skirt","pencil skirt","leggings","shorts","yoga pants","cargo pants","thighhighs","pantyhose"]);
-const ACCESSORY_TAGS = new Set(["glasses","sunglasses","choker","cat ears","halo","horns","mechanical wings","headphones","jewelry","mask"]);
+const TOP_TAGS = new Set(["hoodie","oversized hoodie","t-shirt","graphic tee","crop top","tube top","sweater","turtle neck","tank top","camisole","dress shirt","blouse","corset","bikini top","micro bikini top","bandeau","triangle bikini","halter top","sports bra","armored plate","kimono","yukata","school uniform","serafuku","blazer","leather jacket","denim jacket","coat","lab coat"]);
+const BOTTOM_TAGS = new Set(["jeans","skinny jeans","ripped jeans","pleated skirt","miniskirt","pencil skirt","long skirt","bubble skirt","leggings","yoga pants","shorts","dolphin shorts","cargo pants","track pants","sweatpants","bikini bottom","side-tie bikini bottom","micro bikini bottom","sarong","pareo","panties","thong","no pants"]);
+const ACCESSORY_TAGS = new Set(["glasses","sunglasses","monocle","goggles","eyepatch","choker","collar","necklace","pendant","earrings","piercings","navel piercing","cat ears","animal ears","halo","horns","demon horns","mechanical wings","angel wings","bat wings","headphones","jewelry","mask","gas mask","fox mask","ribbon","hair flower","hair ornament","hat","cap","beret","beanie","witch hat"]);
+
+// NEW: Full-body outfits (dresses, one-piece)
+const FULL_BODY_TAGS = new Set([
+  "sundress","summer dress","evening gown","cocktail dress","wedding dress","strapless dress","off-shoulder dress","halter dress","backless dress","sweater dress","slip dress","china dress","cheongsam","dirndl","gothic lolita dress","maid dress","nurse uniform","nun habit",
+  "one-piece swimsuit","school swimsuit","competitive swimsuit","sling swimsuit","monokini","bodysuit","leotard","plugsuit","wetsuit","latex suit"
+]);
 
 const CAMERA_TAGS = new Set(["cowboy shot","upper body","full body","close-up","portrait","dutch angle","from below","from above","wide angle","fisheye"]);
 const ART_STYLE_TAGS = new Set(["anime","realistic","semi-realistic","oil painting","sketch","lineart","cel shaded","digital art","pixel art","watercolor","flat color"]);
@@ -603,7 +609,7 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   // coverage tokens integrate with fashion
   selectedNSFW.filter((t) => t.category === "coverage").forEach((t) => fashionParts.push(t.label));
   // user-selected apparel additions (avoid duplicates)
-  const apparelExtras = extra.filter((t) => TOP_TAGS.has(t) || BOTTOM_TAGS.has(t) || ACCESSORY_TAGS.has(t));
+  const apparelExtras = extra.filter((t) => TOP_TAGS.has(t) || BOTTOM_TAGS.has(t) || ACCESSORY_TAGS.has(t) || FULL_BODY_TAGS.has(t));
   apparelExtras.forEach((t) => {
     if (!fashionParts.some((p) => norm(p) === t)) fashionParts.push(t);
   });

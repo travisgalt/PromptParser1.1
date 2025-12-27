@@ -43,13 +43,25 @@ export const defaultCategories: PromptCategoryDef[] = [
   },
 
   // --- PRIORITY 4: APPAREL ---
+  // 1. NEW CATEGORY: Full Body Outfits (Dresses, Robes, One-Piece Swimsuits)
+  {
+    name: "Outfit - Full Body / Dresses",
+    tags: [
+      "sundress", "summer dress", "evening gown", "cocktail dress", "wedding dress", "strapless dress", "off-shoulder dress", "halter dress", "backless dress", "sweater dress", "slip dress", "china dress", "cheongsam", "dirndl", "gothic lolita dress", "maid dress", "nurse uniform", "nun habit",
+      "one-piece swimsuit", "school swimsuit", "competitive swimsuit", "sling swimsuit", "monokini", "bodysuit", "leotard", "plugsuit", "wetsuit", "latex suit"
+    ]
+  },
+
+  // 2. UPDATE: Outfit - Top (Add Bikini Tops)
   {
     name: "Outfit - Top",
-    tags: ["hoodie", "oversized hoodie", "t-shirt", "graphic tee", "crop top", "tube top", "sweater", "turtle neck", "tank top", "camisole", "dress shirt", "blouse", "corset", "bikini top", "sports bra", "armored plate", "kimono", "yukata", "school uniform", "serafuku", "blazer", "leather jacket", "denim jacket", "coat", "lab coat", "maid apron"]
+    tags: ["bikini top", "micro bikini top", "bandeau", "triangle bikini", "halter top", "hoodie", "oversized hoodie", "t-shirt", "graphic tee", "crop top", "tube top", "sweater", "turtle neck", "tank top", "camisole", "dress shirt", "blouse", "corset", "sports bra", "armored plate", "kimono", "yukata", "school uniform", "serafuku", "blazer", "leather jacket", "denim jacket", "coat", "lab coat"]
   },
+
+  // 3. UPDATE: Outfit - Bottom (Add Bikini Bottoms & Skirts)
   {
     name: "Outfit - Bottom",
-    tags: ["jeans", "skinny jeans", "ripped jeans", "pleated skirt", "miniskirt", "pencil skirt", "long skirt", "leggings", "yoga pants", "shorts", "dolphin shorts", "cargo pants", "track pants", "sweatpants", "bikini bottom", "panties", "thong", "no pants"]
+    tags: ["bikini bottom", "side-tie bikini bottom", "micro bikini bottom", "sarong", "pareo", "jeans", "skinny jeans", "ripped jeans", "pleated skirt", "miniskirt", "pencil skirt", "long skirt", "bubble skirt", "leggings", "yoga pants", "shorts", "dolphin shorts", "cargo pants", "track pants", "sweatpants", "panties", "thong", "no pants"]
   },
   {
     name: "Legwear & Footwear",

@@ -65,7 +65,6 @@ export const PromptControls: React.FC<Props> = ({
     const current = categories[catIndex];
     const wasSelected = (current.selected || []).includes(tag);
 
-    // Helper to get category by name
     const findCat = (name: string) => categories.find((c) => c.name === name);
     const setCatSelected = (name: string, next: string[]) => {
       const idx = categories.findIndex((c) => c.name === name);
@@ -81,34 +80,26 @@ export const PromptControls: React.FC<Props> = ({
     };
     const clearCategory = (name: string) => setCatSelected(name, []);
 
-    // Base toggle logic
     let nextSel = new Set(current.selected || []);
     if (wasSelected) {
-      // Turn OFF: simply remove, no conflicts to resolve
       nextSel.delete(tag);
     } else {
-      // Turn ON: add and enforce conflicts
       nextSel.add(tag);
 
-      // Pose exclusivity: only one tag in "Pose (Mutually Exclusive)"
+      // Pose exclusivity + movement/static rules
       if (current.name === "Pose (Mutually Exclusive)") {
-        nextSel = new Set([tag]); // single selection
-        // Movement vs static rules
+        nextSel = new Set([tag]);
         const movement = new Set(["running", "walking", "jumping", "flying"]);
         const staticSet = new Set(["sitting", "kneeling", "lying down", "on stomach", "on back"]);
         if (movement.has(tag)) {
-          // Remove static poses within this category
           nextSel = new Set([tag]);
         }
         if (tag === "sitting") {
-          // Sitting conflicts with certain movement/standing
           nextSel = new Set([tag]);
-          // Also remove movement/standing if they exist in this category
-          // (Already enforced by single selection)
         }
       }
 
-      // Hair logic: bald deselects all hair style and hair color; selecting any hair style/color deselects bald
+      // Hair logic: bald vs hair
       if (current.name === "Hair Style" && tag.toLowerCase() === "bald") {
         clearCategory("Hair Color");
       } else if (current.name === "Hair Style" && tag.toLowerCase() !== "bald") {
@@ -118,40 +109,45 @@ export const PromptControls: React.FC<Props> = ({
         removeTagInCategory("Hair Style", "bald");
       }
 
-      // Visual clarity: simple background or any background-simple deselects all Location - Detailed
+      // Background vs Location clarity
       const isSimpleBackgroundTag =
         (current.name === "Location - Detailed" && tag.toLowerCase() === "simple background") ||
         current.name === "Background - Simple";
       if (isSimpleBackgroundTag) {
         clearCategory("Location - Detailed");
       }
-      // Conversely, selecting a Location - Detailed tag deselects Background - Simple and 'simple background' in Location - Detailed
       if (current.name === "Location - Detailed" && tag.toLowerCase() !== "simple background") {
         clearCategory("Background - Simple");
         removeTagInCategory("Location - Detailed", "simple background");
       }
 
-      // Eyes: closed eyes deselects specific color eyes; selecting a specific color deselects closed eyes
+      // Eyes: closed vs colors
       if (current.name === "Eyes") {
         const tl = tag.toLowerCase();
         const eyeColors = ["blue eyes","red eyes","green eyes","amber eyes","purple eyes","yellow eyes","pink eyes"];
         if (tl === "closed eyes") {
-          // Remove all color eyes
           const cat = findCat("Eyes");
           if (cat) {
             const filtered = (cat.selected || []).filter((t) => !eyeColors.includes(t.toLowerCase()));
             nextSel = new Set(filtered.concat(["closed eyes"]));
           }
         } else if (eyeColors.includes(tl)) {
-          // Remove closed eyes
           nextSel.delete("closed eyes");
         }
       }
+
+      // NEW: Full Body vs Parts conflict resolution
+      if (current.name === "Outfit - Full Body / Dresses") {
+        // Selecting any full-body outfit clears separate tops and bottoms
+        clearCategory("Outfit - Top");
+        clearCategory("Outfit - Bottom");
+      } else if (current.name === "Outfit - Top" || current.name === "Outfit - Bottom") {
+        // Selecting a top or bottom clears full-body outfits
+        clearCategory("Outfit - Full Body / Dresses");
+      }
     }
 
-    // Commit updated selection for the toggled category
     categories[catIndex] = { ...current, selected: Array.from(nextSel) };
-
     setField("promptBuilderCategories", categories);
   };
 
