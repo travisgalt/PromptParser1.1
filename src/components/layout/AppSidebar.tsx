@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
-import { Settings, Lock } from "lucide-react";
+import { Settings, Lock, Shield, User as UserIcon, LogOut } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardHeader as UICardHeader, CardTitle as UICardTitle, CardContent as UICardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -156,10 +156,41 @@ const AppSidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
                   {/* Tabs */}
                   <Tabs defaultValue="overview" className="mt-4">
-                    <TabsList className="w-full justify-start">
-                      <TabsTrigger value="overview">Overview</TabsTrigger>
-                      <TabsTrigger value="preferences">Preferences</TabsTrigger>
-                      <TabsTrigger value="subscription">Subscription</TabsTrigger>
+                    <TabsList className="w-full flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <TabsTrigger value="overview">Overview</TabsTrigger>
+                        <TabsTrigger value="preferences">Preferences</TabsTrigger>
+                        <TabsTrigger value="subscription">Subscription</TabsTrigger>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => { setOpenSettings(false); navigate("/admin"); }}
+                            className="inline-flex items-center gap-2 px-3 py-2 rounded-md border transition bg-transparent text-foreground hover:bg-white/5 border-white/10"
+                          >
+                            <Shield className="h-4 w-4" />
+                            <span>Admin</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => { setOpenSettings(false); navigate("/profile"); }}
+                          className="inline-flex items-center gap-2 px-3 py-2 rounded-md border transition bg-transparent text-foreground hover:bg-white/5 border-white/10"
+                        >
+                          <UserIcon className="h-4 w-4" />
+                          <span>View Profile</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={onSignOut}
+                          className="inline-flex items-center gap-2 px-3 py-2 rounded-md border transition bg-transparent text-foreground hover:bg-white/5 border-white/10"
+                        >
+                          <LogOut className="h-4 w-4" />
+                          <span>Sign Out</span>
+                        </button>
+                      </div>
                     </TabsList>
 
                     <TabsContent value="overview" className="space-y-4 mt-4">
@@ -260,22 +291,6 @@ const AppSidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                       </Card>
                     </TabsContent>
                   </Tabs>
-
-                  <DialogFooter className="flex justify-between">
-                    <div className="flex gap-2">
-                      {isAdmin && (
-                        <Button variant="outline" onClick={() => { setOpenSettings(false); navigate("/admin"); }}>
-                          Admin
-                        </Button>
-                      )}
-                      <Button variant="outline" onClick={() => { setOpenSettings(false); navigate("/profile"); }}>
-                        View Profile
-                      </Button>
-                    </div>
-                    <Button variant="destructive" onClick={onSignOut}>
-                      Sign out
-                    </Button>
-                  </DialogFooter>
                 </DialogContent>
               </Dialog>
             </>
