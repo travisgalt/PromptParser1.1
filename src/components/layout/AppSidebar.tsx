@@ -27,7 +27,18 @@ import {
 } from "@/components/ui/dialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
-import { Settings, Lock, Shield, User as UserIcon, LogOut } from "lucide-react";
+import { Settings, Lock, Shield, User as UserIcon, LogOut, Trash2, Download } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction
+} from "@/components/ui/alert-dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardHeader as UICardHeader, CardTitle as UICardTitle, CardContent as UICardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -50,9 +61,11 @@ const AppSidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [promptCount, setPromptCount] = React.useState<number>(0);
   const [isAdmin, setIsAdmin] = React.useState<boolean>(false);
 
-  // Preferences (local-only for now)
-  const [prefMedium, setPrefMedium] = React.useState<"photo" | "render">("photo");
-  const [prefSafeMode, setPrefSafeMode] = React.useState<boolean>(true);
+  // ADDED: global preferences local state
+  const [globalNegative, setGlobalNegative] = React.useState<string>("");
+  const [autoSaveImages, setAutoSaveImages] = React.useState<boolean>(false);
+  const [privacyBlur, setPrivacyBlur] = React.useState<boolean>(false);
+  const [confirmClearOpen, setConfirmClearOpen] = React.useState<boolean>(false);
 
   React.useEffect(() => {
     if (!openSettings) return;
@@ -63,7 +76,12 @@ const AppSidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     setPrefMedium(medium === "render" ? "render" : "photo");
     setPrefSafeMode(safe === "false" ? false : true);
 
-    // Fetch usage stats (total generated prompts) for this user
+    // Load global generation preferences
+    setGlobalNegative(localStorage.getItem("generator:global_negative") || "");
+    setAutoSaveImages(localStorage.getItem("generator:auto_save_images") === "true");
+    setPrivacyBlur(localStorage.getItem("generator:privacy_blur") === "true");
+
+    // Fetch usage stats (total generated prompts) and admin flag
     if (userId) {
       supabase
         .from("generated_prompts")
@@ -73,7 +91,6 @@ const AppSidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           setPromptCount(typeof count === "number" ? count : 0);
         });
 
-      // Fetch admin flag for this user to show Admin action
       supabase
         .from("profiles")
         .select("is_admin")
@@ -92,6 +109,46 @@ const AppSidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     await supabase.auth.signOut();
     setOpenSettings(false);
     navigate("/");
+  };
+
+  // ADDED: handlers for storage management
+  const clearHistory = async () => {
+    if (userId) {
+      await supabase.from("generated_prompts").delete().eq("user_id", userId);
+      window.dispatchEvent(new CustomEvent("generator:history_update"));
+    } else {
+      localStorage.removeItem("generator:history");
+      window.dispatchEvent(new CustomEvent("generator:history_update"));
+    }
+    setConfirmClearOpen(false);
+  };
+
+  const exportAllPrompts = async () => {
+    let records: any[] = [];
+    if (userId) {
+      const { data } = await supabase
+        .from("generated_prompts")
+        .select("id, positive_prompt, negative_prompt, settings, created_at")
+        .order("created_at", { ascending: false });
+      records = data || [];
+    } else {
+      try {
+        const raw = localStorage.getItem("generator:history");
+        const parsed = raw ? JSON.parse(raw) : [];
+        records = parsed;
+      } catch {
+        records = [];
+      }
+    }
+    const blob = new Blob([JSON.stringify(records, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "prompts_export.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -140,21 +197,108 @@ const AppSidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     <DialogDescription>Manage your account, preferences, and plan.</DialogDescription>
                   </DialogHeader>
 
-                  {/* User header */}
-                  <div className="flex items-center gap-4 rounded-md border border-white/10 bg-slate-900/40 p-4">
-                    <Avatar className="h-16 w-16">
-                      <AvatarImage src={undefined} alt={email || "User"} />
-                      <AvatarFallback className="text-xl">{initials}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="text-base font-semibold">{email}</div>
-                      {memberSince && (
-                        <div className="text-xs text-muted-foreground">Member Since: {memberSince}</div>
-                      )}
+                  {/* Profile Header (full width, gradient) */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="md:col-span-2 rounded-md border border-white/10 p-4 bg-gradient-to-r from-gray-900 to-gray-800">
+                      <div className="flex items-center gap-4">
+                        <Avatar className="h-16 w-16">
+                          <AvatarImage src={undefined} alt={email || "User"} />
+                          <AvatarFallback className="text-xl">{initials}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <div className="text-base font-semibold">{email}</div>
+                          {memberSince && (
+                            <div className="text-xs text-muted-foreground">Member Since: {memberSince}</div>
+                          )}
+                        </div>
+                      </div>
                     </div>
+
+                    {/* Stats Card - premium style */}
+                    <Card className="bg-slate-900/60 backdrop-blur-md border border-white/10 border-l-4 border-purple-500">
+                      <UICardHeader>
+                        <UICardTitle className="text-sm">Total Prompts Generated</UICardTitle>
+                      </UICardHeader>
+                      <UICardContent>
+                        <div className="text-3xl font-bold">{promptCount}</div>
+                        <div className="text-xs text-muted-foreground">Across all sessions</div>
+                      </UICardContent>
+                    </Card>
+
+                    {/* Global Generation Preferences */}
+                    <Card className="bg-slate-900/60 backdrop-blur-md border border-white/10 md:col-span-2">
+                      <UICardHeader>
+                        <UICardTitle className="text-sm">Global Generation Preferences</UICardTitle>
+                      </UICardHeader>
+                      <UICardContent className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>Global Negative Prompt</Label>
+                          <Textarea
+                            placeholder="e.g., nsfw, low quality, bad hands"
+                            value={globalNegative}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setGlobalNegative(v);
+                              localStorage.setItem("generator:global_negative", v);
+                            }}
+                            className="min-h-[100px] bg-slate-900 border-slate-700 text-white"
+                          />
+                          <div className="text-xs text-muted-foreground">
+                            This base negative will be applied automatically to new sessions.
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <Label>Auto-save generated images to history</Label>
+                          <Switch
+                            checked={autoSaveImages}
+                            onCheckedChange={(c) => {
+                              setAutoSaveImages(c);
+                              localStorage.setItem("generator:auto_save_images", String(c));
+                            }}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <Label>Blur items in Recent History sidebar</Label>
+                          <Switch
+                            checked={privacyBlur}
+                            onCheckedChange={(c) => {
+                              setPrivacyBlur(c);
+                              localStorage.setItem("generator:privacy_blur", String(c));
+                              // Broadcast to update sidebar rendering
+                              window.dispatchEvent(new CustomEvent("generator:history_update"));
+                            }}
+                          />
+                        </div>
+                      </UICardContent>
+                    </Card>
+
+                    {/* Data & Storage */}
+                    <Card className="bg-slate-900/60 backdrop-blur-md border border-white/10 md:col-span-2">
+                      <UICardHeader>
+                        <UICardTitle className="text-sm">Data & Storage</UICardTitle>
+                      </UICardHeader>
+                      <UICardContent className="flex flex-wrap gap-3">
+                        <Button
+                          variant="destructive"
+                          onClick={() => setConfirmClearOpen(true)}
+                          className="gap-2"
+                        >
+                          <Trash2 className="h-4 w-4" /> Clear Generation History
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          onClick={exportAllPrompts}
+                          className="gap-2"
+                        >
+                          <Download className="h-4 w-4" /> Export All Prompts
+                        </Button>
+                      </UICardContent>
+                    </Card>
                   </div>
 
-                  {/* Tabs */}
+                  {/* Tabs: keep only content sections; remove Theme box */}
                   <Tabs defaultValue="overview" className="mt-4">
                     <TabsList className="w-full flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
@@ -194,27 +338,9 @@ const AppSidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     </TabsList>
 
                     <TabsContent value="overview" className="space-y-4 mt-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Card className="bg-slate-900/50 backdrop-blur-md border border-white/10">
-                          <UICardHeader>
-                            <UICardTitle className="text-sm">Total Prompts Generated</UICardTitle>
-                          </UICardHeader>
-                          <UICardContent>
-                            <div className="text-3xl font-bold">{promptCount}</div>
-                            <div className="text-xs text-muted-foreground">Across all sessions</div>
-                          </UICardContent>
-                        </Card>
-
-                        <Card className="bg-slate-900/50 backdrop-blur-md border border-white/10">
-                          <UICardHeader>
-                            <UICardTitle className="text-sm">Theme</UICardTitle>
-                          </UICardHeader>
-                          <UICardContent>
-                            <div className="rounded-md border border-white/10 p-2 bg-slate-900/40">
-                              <ThemeToggle />
-                            </div>
-                          </UICardContent>
-                        </Card>
+                      {/* We already rendered the grid above as the overview content */}
+                      <div className="text-xs text-muted-foreground">
+                        Overview includes profile, stats, global preferences, and storage tools.
                       </div>
                     </TabsContent>
 
@@ -291,6 +417,27 @@ const AppSidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                       </Card>
                     </TabsContent>
                   </Tabs>
+
+                  {/* Clear History Confirmation */}
+                  <AlertDialog open={confirmClearOpen} onOpenChange={setConfirmClearOpen}>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Clear Generation History</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete your recent generation history. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={clearHistory}
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </DialogContent>
               </Dialog>
             </>

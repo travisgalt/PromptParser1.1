@@ -119,6 +119,19 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
     setIsGeneratingImg(false);
     if (imageData) {
       showSuccess("Image generated");
+      // Auto-save images to history if preference is enabled
+      const autoSave = localStorage.getItem("generator:auto_save_images") === "true";
+      if (autoSave) {
+        await saveItem({
+          positive: output.positive,
+          negative: output.negative,
+          seed: controls.seed,
+          settings: {
+            ...controls,
+            imageData,
+          },
+        });
+      }
     }
   };
 
@@ -138,6 +151,13 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
       // 2) Clear any old images in the result zone
       setGeneratedImage(null);
 
+      // 2.5) Apply Global Negative Prompt preference
+      const baseNeg = (typeof window !== "undefined" ? localStorage.getItem("generator:global_negative") : "") || "";
+      const combinedNegative =
+        baseNeg && result.negative ? `${baseNeg}, ${result.negative}` :
+        baseNeg && !result.negative ? baseNeg :
+        result.negative;
+
       // 3) Save to history (DB/local) with the fresh seed in settings
       const settings = {
         seed: result.seed,
@@ -154,14 +174,17 @@ export const PromptGenerator: React.FC<PromptGeneratorProps> = ({ hideHistory = 
 
       await saveItem({
         positive: result.positive,
-        negative: result.negative,
+        negative: combinedNegative,
         seed: result.seed,
         settings,
       });
 
+      // Update output with combined negative
+      output.setPositive(result.positive);
+      output.setNegative(combinedNegative);
       showSuccess("Prompt updated");
     },
-    [isBanned, controls, generate, saveItem, setGeneratedImage]
+    [isBanned, controls, generate, saveItem, setGeneratedImage, output]
   );
 
   // Generate Prompt button uses the unified flow

@@ -15,6 +15,14 @@ const HistorySidebar: React.FC = () => {
   const userId = session?.user?.id ?? null;
   const { history, isLoading } = useHistory(userId);
 
+  const [privacyBlur, setPrivacyBlur] = React.useState<boolean>(false);
+  React.useEffect(() => {
+    setPrivacyBlur(localStorage.getItem("generator:privacy_blur") === "true");
+    const handle = () => setPrivacyBlur(localStorage.getItem("generator:privacy_blur") === "true");
+    window.addEventListener("generator:history_update", handle as EventListener);
+    return () => window.removeEventListener("generator:history_update", handle as EventListener);
+  }, []);
+
   const copyText = (text: string) => {
     navigator.clipboard.writeText(text);
     showSuccess("Copied");
@@ -41,7 +49,7 @@ const HistorySidebar: React.FC = () => {
                       {new Date(item.timestamp).toLocaleString()}
                     </span>
                   </div>
-                  <div className="relative rounded bg-slate-900/60 border border-white/10 p-2">
+                  <div className={`relative rounded bg-slate-900/60 border border-white/10 p-2 ${privacyBlur ? "blur-sm" : ""}`}>
                     <p className="text-xs font-mono whitespace-pre-wrap break-words pr-10">
                       {item.positive}
                     </p>
