@@ -1,6 +1,6 @@
 import { showError } from "@/utils/toast";
 
-// ADDED: Environment-based API URL with fallback
+// Environment-based API URL with fallback
 const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:7860/sdapi/v1/txt2img";
 
 export async function generateImage(
@@ -34,8 +34,8 @@ export async function generateImage(
     };
   }
 
-  // UPDATED: Log the full URL being hit for debugging
-  console.log("Connecting to API:", API_URL);
+  // Log the full URL being hit for debugging
+  console.log(`Connecting to API: ${API_URL}`);
 
   try {
     const resp = await fetch(API_URL, {
@@ -46,7 +46,7 @@ export async function generateImage(
 
     if (!resp.ok) {
       const errText = await resp.text().catch(() => "");
-      console.error("Forge API error:", resp.status, errText);
+      console.error(`Forge API error: ${resp.status} ${errText}`);
 
       // Safeguard: if error mentions ADetailer/script, retry without ADetailer
       if (useADetailer && /ADetailer|adetailer|script/i.test(errText)) {
@@ -54,7 +54,7 @@ export async function generateImage(
         // Remove ADetailer and retry once
         delete payload.alwayson_scripts;
 
-        console.log("Connecting to API (retry without ADetailer):", API_URL);
+        console.log(`Connecting to API (retry without ADetailer): ${API_URL}`);
         const retryResp = await fetch(API_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -63,21 +63,37 @@ export async function generateImage(
 
         if (!retryResp.ok) {
           const retryText = await retryResp.text().catch(() => "");
-          console.error("Forge API retry error:", retryResp.status, retryText);
+          console.error(`Forge API retry error: ${retryResp.status} ${retryText}`);
           return null;
         }
 
         const retryData = await retryResp.json().catch(() => null);
-        return retryData?.image ?? null;
+        if (retryData && Array.isArray(retryData.images) && retryData.images.length > 0) {
+          const img = retryData.images[0] as string;
+          return img.startsWith("data:image") ? img : `data:image/png;base64,${img}`;
+        }
+        if (retryData && typeof retryData.image === "string") {
+          const img = retryData.image as string;
+          return img.startsWith("data:image") ? img : `data:image/png;base64,${img}`;
+        }
+        return null;
       }
 
       return null;
     }
 
     const data = await resp.json().catch(() => null);
-    return data?.image ?? null;
+    if (data && Array.isArray(data.images) && data.images.length > 0) {
+      const img = data.images[0] as string;
+      return img.startsWith("data:image") ? img : `data:image/png;base64,${img}`;
+    }
+    if (data && typeof data.image === "string") {
+      const img = data.image as string;
+      return img.startsWith("data:image") ? img : `data:image/png;base64,${img}`;
+    }
+    return null;
   } catch (error: any) {
-    console.error("API Error:", error);
+    console.error(`API Error: ${error}`);
 
     // Safeguard in catch: retry without ADetailer if error mentions script
     const msg = typeof error?.message === "string" ? error.message : String(error ?? "");
@@ -85,7 +101,7 @@ export async function generateImage(
       showError("ADetailer failed, generating without it");
       delete payload.alwayson_scripts;
 
-      console.log("Connecting to API (catch retry):", API_URL);
+      console.log(`Connecting to API (catch retry): ${API_URL}`);
       try {
         const retryResp = await fetch(API_URL, {
           method: "POST",
@@ -95,14 +111,22 @@ export async function generateImage(
 
         if (!retryResp.ok) {
           const retryText = await retryResp.text().catch(() => "");
-          console.error("Forge API retry error:", retryResp.status, retryText);
+          console.error(`Forge API retry error: ${retryResp.status} ${retryText}`);
           return null;
         }
 
         const retryData = await retryResp.json().catch(() => null);
-        return retryData?.image ?? null;
+        if (retryData && Array.isArray(retryData.images) && retryData.images.length > 0) {
+          const img = retryData.images[0] as string;
+          return img.startsWith("data:image") ? img : `data:image/png;base64,${img}`;
+        }
+        if (retryData && typeof retryData.image === "string") {
+          const img = retryData.image as string;
+          return img.startsWith("data:image") ? img : `data:image/png;base64,${img}`;
+        }
+        return null;
       } catch (e2: any) {
-        console.error("Retry Error:", e2);
+        console.error(`Retry Error: ${e2}`);
         return null;
       }
     }
