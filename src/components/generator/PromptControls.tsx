@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { HelpCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSession } from "@/components/auth/SessionProvider";
-import { speciesList, stylesList, themesList } from "@/lib/prompt-data";
+import { type ThemeKey } from "@/lib/prompt-data";
 import { models } from "@/lib/model-data";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import useSubscription from "@/hooks/useSubscription";
@@ -28,7 +28,8 @@ export type ControlsState = {
   negativeIntensity: number;
   safeMode: boolean;
   selectedSpecies: string[];
-  selectedTheme: "any" | "fantasy" | "modern" | "scifi" | "cyberpunk" | "steampunk" | "post_apocalyptic" | "horror_gothic" | "noir" | "school_life";
+  // UPDATED: selectedTheme now uses ThemeKey to match DB slugs and engine expectations
+  selectedTheme: ThemeKey;
   selectedStyle: string;
   selectedModelId: string; // model checkpoint id
   width: number; // NEW
@@ -217,6 +218,43 @@ export const PromptControls: React.FC<Props> = ({
     };
   }, [fetchDbStyles]);
 
+  // NEW: Load themes from DB with realtime subscription
+  const [dbThemes, setDbThemes] = React.useState<{ slug: ThemeKey; label: string }[]>([]);
+  const fetchDbThemes = React.useCallback(async () => {
+    const { data, error } = await supabase
+      .from("themes")
+      .select("slug, label, enabled, compatible_models");
+    if (error || !data) {
+      setDbThemes([]);
+      return;
+    }
+    const rows = (data as any[])
+      .filter((row) => row.enabled !== false)
+      .filter((row) => {
+        const list: string[] = row.compatible_models || [];
+        return !selectedModel || list.length === 0 ? false : list.includes(selectedModel.id);
+      })
+      .map((row) => ({ slug: row.slug as ThemeKey, label: row.label as string }));
+    setDbThemes(rows);
+  }, [selectedModel]);
+
+  React.useEffect(() => {
+    fetchDbThemes();
+
+    const channel = supabase
+      .channel("themes-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "themes" },
+        () => fetchDbThemes()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchDbThemes]);
+
   const filteredStyles = React.useMemo(() => {
     const source = dbStyles;
     if (selectedModel?.allowedStyles && selectedModel.allowedStyles.length > 0) {
@@ -350,16 +388,21 @@ export const PromptControls: React.FC<Props> = ({
             <Label>Theme</Label>
             <Select value={state.selectedTheme} onValueChange={(v) => setField("selectedTheme", v as ControlsState["selectedTheme"])}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a Theme" />
+                <SelectValue placeholder={dbThemes.length === 0 ? "No themes available for this model" : "Select a Theme"} />
               </SelectTrigger>
               <SelectContent>
-                {themesList.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {t.replace(/_/g, " ")}
+                {dbThemes.map((t) => (
+                  <SelectItem key={t.slug} value={t.slug}>
+                    {t.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {dbThemes.length === 0 && (
+              <div className="text-xs text-muted-foreground">
+                No themes found. Add or enable themes for this model in Admin → Themes.
+              </div>
+            )}
           </div>
         </div>
 

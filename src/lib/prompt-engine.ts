@@ -54,6 +54,11 @@ export type GeneratorConfig = {
       accessories?: string[];
     };
   };
+  // NEW: Theme-specific modifiers resolved client-side from DB
+  themeTags?: {
+    positive: string[];
+    negative?: string[];
+  };
 };
 
 // Helper: normalize tags to lowercase for matching
@@ -514,7 +519,8 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
   const style = config.style ?? "photorealistic";
   const theme = config.theme ?? ("any" as ThemeKey);
 
-  const extra = (config.extraTags ?? []).map(norm);
+  // MERGED: include theme positive tags with user extra tags
+  const extra = [...(config.extraTags ?? []).map(norm), ...(config.themeTags?.positive ?? []).map(norm)];
 
   const { base: baseSpecies, modifiers } = resolveSpeciesConflicts(config.allowedSpecies);
 
@@ -739,9 +745,13 @@ export function generatePrompt(config: GeneratorConfig): GeneratedPrompt {
         config.seed,
         { medium: mediumForContext as Medium | undefined, scenario }
       );
-      if (extraNegatives.length) {
-        const extras = extraNegatives.map((n) => `(${n}:${config.negativeIntensity.toFixed(2)})`).join(", ");
-        negative = `${baseNeg}, ${extras}`;
+      // NEW: add theme-provided negative tags, weighted by intensity
+      const themeNegExtras = (config.themeTags?.negative ?? []).map((n) => `(${n}:${config.negativeIntensity.toFixed(2)})`);
+      const bodyLockExtras = extraNegatives.map((n) => `(${n}:${config.negativeIntensity.toFixed(2)})`);
+
+      const extrasStr = [...bodyLockExtras, ...themeNegExtras].join(", ");
+      if (extrasStr.length) {
+        negative = `${baseNeg}, ${extrasStr}`;
       } else {
         negative = baseNeg;
       }

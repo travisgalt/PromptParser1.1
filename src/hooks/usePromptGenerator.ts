@@ -6,6 +6,7 @@ import { parseControlsFromQuery } from "@/lib/url-state";
 import type { ControlsState } from "@/components/generator/PromptControls";
 import { supabase } from "@/integrations/supabase/client";
 import { defaultCategories } from "@/lib/prompt-builder-data";
+import { getThemeTagsForModel } from "@/lib/themes";
 
 function randomSeed() {
   return Math.floor(Math.random() * 1_000_000_000);
@@ -68,18 +69,18 @@ export function usePromptGenerator(opts?: { userId?: string }) {
     accessories?: string[];
   }>({});
 
-  const pushRecent = (key: keyof typeof recent, value: string | string[]) => {
-    setRecent((prev) => {
-      const arr = Array.isArray(value) ? value : [value];
-      const merged = [...(prev[key] ?? []), ...arr];
-      // Keep last 2 unique entries
-      const uniq: string[] = [];
-      for (const v of merged) {
-        if (!uniq.includes(v)) uniq.push(v);
-      }
-      return { ...prev, [key]: uniq.slice(-2) };
-    });
-  };
+  // NEW: resolved theme tags for current selection
+  const [themeTags, setThemeTags] = React.useState<{ positive: string[]; negative?: string[] } | null>(null);
+
+  // Fetch theme tags when theme or model changes
+  React.useEffect(() => {
+    let active = true;
+    (async () => {
+      const tags = await getThemeTagsForModel(controls.selectedTheme, controls.selectedModelId);
+      if (active) setThemeTags(tags);
+    })();
+    return () => { active = false; };
+  }, [controls.selectedTheme, controls.selectedModelId]);
 
   // NEW: When user logs in, load profile defaults and set human-only if none found
   React.useEffect(() => {
@@ -136,6 +137,8 @@ export function usePromptGenerator(opts?: { userId?: string }) {
       eyeColor: controls.eyeColor,
       extraTags,
       variety: { recent },
+      // NEW: inject resolved theme modifiers
+      themeTags: themeTags ?? undefined,
     };
     const result = generatePrompt(config);
     setPositive(result.positive);
@@ -178,6 +181,8 @@ export function usePromptGenerator(opts?: { userId?: string }) {
       eyeColor: cur.eyeColor,
       extraTags,
       variety: { recent },
+      // NEW: carry currently resolved theme tags
+      themeTags: themeTags ?? undefined,
     };
     const result = generatePrompt(config);
 
@@ -200,7 +205,7 @@ export function usePromptGenerator(opts?: { userId?: string }) {
     }
 
     return { positive: result.positive, negative: result.negative, seed: newSeed };
-  }, [controls, recent]);
+  }, [controls, recent, themeTags]);
 
   const output: OutputState = React.useMemo(
     () => ({
